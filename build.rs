@@ -19,7 +19,10 @@ fn main() {
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate
         // bindings for.
-        .header("/home/jgamba/dev/shuriken/Shuriken-Analyzer/shuriken/include/shuriken/api/C/shuriken_core.h")
+        .headers([
+            "/home/jgamba/dev/shuriken/Shuriken-Analyzer/shuriken/include/shuriken/api/C/shuriken_core.h",
+            "/home/jgamba/dev/shuriken/Shuriken-Analyzer/shuriken/include/shuriken/api/C/shuriken_core_data.h"
+        ])
         .clang_arg("-std=c++17")
         .clang_arg("-x")
         .clang_arg("c++")
