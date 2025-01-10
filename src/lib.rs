@@ -21,8 +21,9 @@ impl Drop for DexContext {
     }
 }
 
-/// Parse a DEX file and return a DEX context
+/// Main method from the DEX core API
 ///
+/// Parse a DEX file and return a DEX context
 /// TODO: change for pathbuf
 pub fn parse_dex(filepath: String) -> DexContext {
     let c_str = CString::new(filepath).unwrap();
@@ -32,3 +33,9 @@ pub fn parse_dex(filepath: String) -> DexContext {
     }
 }
 
+/// Get number of strings in the DEX file
+pub fn get_number_of_strings(context: DexContext) -> usize {
+    unsafe {
+        shuriken::get_number_of_strings(context.0)
+    }
+}
