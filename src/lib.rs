@@ -10,12 +10,17 @@ mod shuriken {
     include!(concat!(env!("OUT_DIR"), "/shuriken_core.rs"));
 }
 
-/// Parse a Dex file
+/// Type alias for Shuriken's `hDexContext`
+pub struct DexContext(shuriken::hDexContext);
+
+/// Parse a DEX file and return a DEX context
+///
 /// TODO: change for pathbuf
-pub fn parse_dex(filepath: String) -> shuriken::hDexContext {
+pub fn parse_dex(filepath: String) -> DexContext {
     let c_str = CString::new(filepath).unwrap();
     let c_world = c_str.as_ptr();
     unsafe {
-        shuriken::parse_dex(c_world)
+        DexContext(shuriken::parse_dex(c_world))
     }
 }
+
