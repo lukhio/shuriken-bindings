@@ -2,7 +2,9 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(improper_ctypes)]
+
 #![allow(dead_code)]
+#![allow(unused_variables)]
 
 use std::ffi::CString;
 
@@ -143,8 +145,8 @@ pub struct DvmMethodAnalysis(shuriken::hdvmmethodanalysis_t);
 /// Structure to keep information about the class analysis
 pub struct DvmClassAnalysis(shuriken::hdvmclassanalysis_t);
 
-// --------------------------- 
-//
+// --------------------------- Parser API ---------------------------
+
 impl Drop for DexContext {
     fn drop(&mut self) {
         unsafe {
@@ -152,8 +154,6 @@ impl Drop for DexContext {
         }
     }
 }
-
-// --------------------------- Parser API ---------------------------
 
 /// Main method from the DEX core API
 ///
@@ -167,9 +167,52 @@ pub fn parse_dex(filepath: String) -> DexContext {
     }
 }
 
-/// Get number of strings in the DEX file
+/// Get the number of strings in the DEX file
 pub fn get_number_of_strings(context: DexContext) -> usize {
     unsafe {
         shuriken::get_number_of_strings(context.0)
     }
+}
+
+/// Get a string given its ID
+///
+/// TODO: need to research how to properly take ownership of this string
+/// Maybe we can loop through the bytes and build a `String` like this?
+pub fn get_string_by_id(context: DexContext, string_id: usize) -> String {
+    todo!()
+}
+
+/// Get the number of classes in the DEX file
+pub fn get_number_of_classes(context: DexContext) -> usize {
+    unsafe {
+        shuriken::get_number_of_classes(context.0).into()
+    }
+}
+
+/// Get a class structure given an ID
+pub fn get_class_by_id(context: DexContext, id: u16) -> DvmClass {
+    todo!();
+}
+
+/// Get a class structure given a class name
+pub fn get_class_by_name(context: DexContext, class_name: String) -> DvmClass {
+    todo!();
+}
+
+/// Get a method structure given a full dalvik name.
+pub fn get_method_by_name(context: DexContext, method_name: String) -> DvmMethod {
+    todo!();
+}
+
+
+// --------------------------- Disassembler API ---------------------------
+
+/// Disassemble a DEX file and generate an internal DexDisassembler
+pub fn disassemble_dex(context: DexContext) {
+    todo!();
+}
+
+/// Get a method structure given a full dalvik name.
+pub fn get_disassembled_method(context: DexContext, method_name: String) -> DvmDisassembledMethod {
+    todo!();
 }
