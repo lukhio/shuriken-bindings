@@ -13,6 +13,14 @@ mod shuriken {
 /// Type alias for Shuriken's `hDexContext`
 pub struct DexContext(shuriken::hDexContext);
 
+impl Drop for DexContext {
+    fn drop(&mut self) {
+        unsafe {
+                shuriken::destroy_dex(self.0);
+        }
+    }
+}
+
 /// Parse a DEX file and return a DEX context
 ///
 /// TODO: change for pathbuf
