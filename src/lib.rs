@@ -216,3 +216,130 @@ pub fn disassemble_dex(context: DexContext) {
 pub fn get_disassembled_method(context: DexContext, method_name: String) -> DvmDisassembledMethod {
     todo!();
 }
+
+// --------------------------- Analysis API ---------------------------
+
+/// Create a DEX analysis object inside of context
+///
+/// Optionally this function can create the cross-refs. In that case the analysis will take longer.
+/// To obtain the analysis, you must also call [`analyze_classes`](fn.analyze_classes.html)
+pub fn create_dex_analysis(context: DexContext, create_xrefs: bool) {
+    todo!();
+}
+
+/// Analyze the classes, add fields and methods into the classes, optionally create the xrefs
+pub fn analyze_classes(context: DexContext) {
+    todo!();
+}
+
+/// Obtain a `DvmClassAnalysis` given a `DvmClass`
+pub fn get_analyzed_class_by_hdvmclass(context: DexContext, class: &DvmClass ) -> &DvmClassAnalysis {
+    todo!();
+}
+
+/// Obtain a `DvmClassAnalysis` given a class name
+pub fn get_analyzed_class(context: DexContext, class_name: &str) -> &DvmClassAnalysis {
+    todo!();
+}
+
+/// Obtain one DvmMethodAnalysis given its DvmMethod
+pub fn get_analyzed_method_by_hdvmmethod(context: DexContext, method: &DvmMethod ) -> &DvmMethodAnalysis {
+    todo!();
+}
+
+/// Obtain one DvmMethodAnalysis given its name
+pub fn get_analyzed_method(context: DexContext, method_full_name: &str) -> &DvmMethodAnalysis {
+    todo!();
+}
+
+// C - APK part of the CORE API from ShurikenLib
+// --------------------------- Parser API ---------------------------
+
+/// main method from the APK Core API it parses the APK file and it retrieves a context object
+pub fn parse_apk(filepath: String, create_xref: bool) -> ApkContext {
+    todo!();
+}
+
+/// Since the context object use dynamic memory this method will properly destroy the object
+pub fn destroy_apk(context: ApkContext) {
+    todo!();
+}
+
+/// Get the number of DEX files in an APK
+///
+/// APKs may contain multiple DEX files. This function retrieve the number of DEX files in an APK.
+pub fn get_number_of_dex_files(context: ApkContext) -> usize {
+    todo!();
+}
+
+/// Given an index, retrieve the name of one of the DEX file
+pub fn get_dex_file_by_index(context: ApkContext, idx: usize) -> String {
+    todo!();
+}
+
+/// Get the number of classes in an APK
+///
+/// Every DEX file contains a number of classes. This function retrieves the total number of
+/// classes in an APK
+pub fn get_number_of_classes_for_dex_file(context: ApkContext, dex_file: &str) -> usize {
+    todo!();
+}
+
+/// Retrieve one of the `DvmClass` from a DEX file
+pub fn get_hdvmclass_from_dex_by_index(context: ApkContext, dex_file: &str, idx: usize) -> &DvmClass {
+    todo!();
+}
+
+/// Retrieve the number of strings from a given DEX
+pub fn get_number_of_strings_from_dex(context: ApkContext, dex_file: &str) -> usize {
+    todo!();
+}
+
+/// Get a string from a DEX by its index
+pub fn get_string_by_id_from_dex(context: ApkContext, dex_file: &str, idx: usize) -> &str {
+    todo!();
+}
+
+// --------------------------- Disassembly API ---------------------------
+
+/// Get a method structure given a full dalvik name.
+pub fn get_disassembled_method_from_apk(context: ApkContext, method_name: &str) -> &DvmDisassembledMethod {
+    todo!();
+}
+
+// --------------------------- Analysis API ---------------------------
+
+/// Obtain one `DvmClassAnalysis` given its `DvmClass`
+pub fn get_analyzed_class_by_hdvmclass_from_apk(context: ApkContext, class: DvmClass) -> DvmClassAnalysis {
+    todo!();
+}
+
+/// Obtain one `DvmClassAnalysis` given its name
+pub fn get_analyzed_class_from_apk(context: ApkContext, class_name: &str) -> DvmClassAnalysis {
+    todo!();
+}
+
+/// Obtain one `DvmMethodAnalysis` given its `DvmMethodAnalysis`
+pub fn get_analyzed_method_by_hdvmmethod_from_apk(context: ApkContext, method: DvmMethod) -> DvmMethodAnalysis {
+    todo!();
+}
+
+/// Obtain one `DvmMethodAnalysis` given its name
+pub fn get_analyzed_method_from_apk(context: ApkContext, method_full_name: &str) -> DvmMethodAnalysis {
+    todo!();
+}
+
+/// Obtain the number of `DvmMethodAnalysis` objects in the APK
+pub fn get_number_of_method_analysis_objects(context: ApkContext) -> usize {
+    todo!();
+}
+
+/// Obtain a `DvmMethodAnalysis` object from the APK by idx
+pub fn get_analyzed_method_by_idx(context: ApkContext, idx: usize) -> DvmMethodAnalysis {
+    todo!();
+}
+
+/// Obtain a `DvmStringAnalysis` given a string
+pub fn get_analyzed_string_from_apk(context: ApkContext, string: &str) -> DvmStringAnalysis {
+    todo!();
+}
