@@ -6,6 +6,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use std::path::PathBuf;
 use std::ffi::CString;
 
 mod shuriken {
@@ -159,9 +160,9 @@ impl DexContext {
     /// Main method from the DEX core API
     ///
     /// Parse a DEX file and return a DEX context
-    /// TODO: change for pathbuf
-    pub fn parse_dex(filepath: String) -> Self {
-        let c_str = CString::new(filepath).unwrap();
+    /// TODO: make sure we correctly handle non-ascii paths
+    pub fn parse_dex(filepath: &PathBuf) -> Self {
+        let c_str = CString::new(filepath.clone().into_os_string().into_string().unwrap()).unwrap();
         let c_world = c_str.as_ptr();
         unsafe {
             DexContext(shuriken::parse_dex(c_world))
@@ -347,5 +348,69 @@ impl ApkContext {
     /// Obtain a `DvmStringAnalysis` given a string
     pub fn get_analyzed_string_from_apk(&self, string: &str) -> DvmStringAnalysis {
         todo!();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+
+    const TEST_FILES_PATH: &str = "test_files/";
+
+    #[test]
+    fn test_parse_dex() {
+        let paths = fs::read_dir(TEST_FILES_PATH).unwrap();
+
+        for path in paths {
+            let path = path.unwrap().path();
+
+            // Only testing DEX files
+            if path.extension().unwrap() == "apk" {
+                continue;
+            }
+
+            let context = DexContext::parse_dex(&path);
+        }
+    }
+
+    #[test]
+    fn test_nb_strings_dex() {
+        use std::collections::HashMap;
+
+        let counts = HashMap::from([
+            ("test_files/_pi.dex", 32usize),
+            ("test_files/_null.dex", 23),
+            ("test_files/_float.dex", 71),
+            ("test_files/_test_lifter.dex", 16),
+            ("test_files/_long.dex", 28),
+            ("test_files/_double.dex", 71),
+            ("test_files/DexParserTest.dex", 33),
+            ("test_files/_exception.dex", 31),
+            ("test_files/_cast.dex", 29),
+            ("test_files/test_zip.apk", 0),
+            ("test_files/_loop.dex", 23),
+            ("test_files/TestFieldsLifter.dex", 44),
+            ("test_files/_instance.dex", 28),
+            ("test_files/_switch.dex", 33),
+            ("test_files/_int.dex", 27)
+        ]);
+
+        let paths = fs::read_dir(TEST_FILES_PATH).unwrap();
+
+        for path in paths {
+            let path = path.unwrap().path();
+
+            // Only testing DEX files
+            if path.extension().unwrap() == "apk" {
+                continue;
+            }
+
+            let context = DexContext::parse_dex(&path);
+            let count = context.get_number_of_strings();
+
+            assert_eq!(count, *counts.get(&path.to_str().unwrap()).unwrap());
+        }
     }
 }
