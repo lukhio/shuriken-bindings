@@ -124,11 +124,8 @@ impl DvmAccessFlag {
         if flag & 0x10 != 0 { flags.push(DvmAccessFlag::ACC_FINAL); }
         
         if flag & 0x20 != 0 {
-            match for_type {
-                DvmAccessFlagType::Method => {
-                    flags.push(DvmAccessFlag::ACC_SYNCHRONIZED);
-                },
-                _ => { }
+            if let DvmAccessFlagType::Method = for_type {
+                flags.push(DvmAccessFlag::ACC_SYNCHRONIZED);
             }
         }
 
@@ -157,20 +154,14 @@ impl DvmAccessFlag {
         }
 
         if flag & 0x100 != 0 {
-            match for_type {
-                DvmAccessFlagType::Method => {
-                    flags.push(DvmAccessFlag::ACC_NATIVE);
-                },
-                _ => { }
+            if let DvmAccessFlagType::Method = for_type {
+                flags.push(DvmAccessFlag::ACC_NATIVE);
             }
         }
 
         if flag & 0x200 != 0 {
-            match for_type {
-                DvmAccessFlagType::Class => {
-                    flags.push(DvmAccessFlag::ACC_INTERFACE);
-                },
-                _ => { }
+            if let DvmAccessFlagType::Class = for_type {
+                flags.push(DvmAccessFlag::ACC_INTERFACE);
             }
         }
 
@@ -184,22 +175,16 @@ impl DvmAccessFlag {
         }
 
         if flag & 0x800 != 0 {
-            match for_type {
-                DvmAccessFlagType::Method => {
-                    flags.push(DvmAccessFlag::ACC_STRICT);
-                },
-                _ => { }
+            if let DvmAccessFlagType::Method = for_type {
+                flags.push(DvmAccessFlag::ACC_STRICT);
             }
         }
 
         if flag & 0x1000 != 0 { flags.push(DvmAccessFlag::ACC_SYNTHETIC); }
 
         if flag & 0x2000 != 0 {
-            match for_type {
-                DvmAccessFlagType::Class => {
-                    flags.push(DvmAccessFlag::ACC_ANNOTATION);
-                },
-                _ => { }
+            if let DvmAccessFlagType::Class = for_type {
+                flags.push(DvmAccessFlag::ACC_ANNOTATION);
             }
         }
 
@@ -212,23 +197,15 @@ impl DvmAccessFlag {
             }
         }
 
-        if flag & 0x8000 != 0  { }
-
         if flag & 0x10000 != 0 {
-            match for_type {
-                DvmAccessFlagType::Method => {
-                    flags.push(DvmAccessFlag::ACC_CONSTRUCTOR);
-                },
-                _ => { }
+            if let DvmAccessFlagType::Method = for_type {
+                flags.push(DvmAccessFlag::ACC_CONSTRUCTOR);
             }
         }
 
         if flag & 0x20000 != 0 {
-            match for_type {
-                DvmAccessFlagType::Method => {
-                    flags.push(DvmAccessFlag::ACC_DECLARED_SYNCHRONIZED);
-                },
-                _ => { }
+            if let DvmAccessFlagType::Method = for_type {
+                flags.push(DvmAccessFlag::ACC_DECLARED_SYNCHRONIZED);
             }
         }
 
@@ -236,7 +213,7 @@ impl DvmAccessFlag {
     }
 
     /// Pretty print a vector of access flags
-    pub fn vec_to_string(flags: &Vec<DvmAccessFlag>) -> String {
+    pub fn vec_to_string(flags: &[DvmAccessFlag]) -> String {
         let mut output = String::new();
         let flags_len = flags.len();
 

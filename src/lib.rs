@@ -8,12 +8,10 @@
 
 pub mod dvm_access_flags;
 
-use std::num::ParseIntError;
-use std::path::PathBuf;
+use std::path::{ Path, PathBuf };
 use std::ffi::{ CStr, CString };
 use std::slice::from_raw_parts;
 
-use shuriken::hdvmmethod_t;
 
 use crate::dvm_access_flags::{ DvmAccessFlag, DvmAccessFlagType };
 
@@ -237,8 +235,8 @@ impl DexContext {
     ///
     /// Parse a DEX file and return a DEX context
     /// TODO: make sure we correctly handle non-ascii paths
-    pub fn parse_dex(filepath: &PathBuf) -> Self {
-        let c_str = CString::new(filepath.clone().into_os_string().into_string().unwrap()).unwrap();
+    pub fn parse_dex(filepath: &Path) -> Self {
+        let c_str = CString::new(filepath.to_path_buf().into_os_string().into_string().unwrap()).unwrap();
         let c_world = c_str.as_ptr();
         unsafe {
             DexContext(shuriken::parse_dex(c_world))
