@@ -6,8 +6,16 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+pub mod dvm_access_flags;
+
+use std::num::ParseIntError;
 use std::path::PathBuf;
-use std::ffi::CString;
+use std::ffi::{ CStr, CString };
+use std::slice::from_raw_parts;
+
+use shuriken::hdvmmethod_t;
+
+use crate::dvm_access_flags::{ DvmAccessFlag, DvmAccessFlagType };
 
 mod shuriken {
     #![allow(dead_code)]
@@ -15,6 +23,7 @@ mod shuriken {
 }
 
 /// Type alias for Shuriken's `hDexContext`
+#[derive(Debug)]
 pub struct DexContext(shuriken::hDexContext);
 /// Type alias for Shuriken's `hApkContext`
 pub struct ApkContext(shuriken::hApkContext);
@@ -31,25 +40,92 @@ pub struct DexTypes(shuriken::htype_e);
 /// Enum with the basic DEX types
 pub struct DexBasicTypes(shuriken::hfundamental_e);
 
-/// Type alias for Shuriken's `access_flags_e`
-///
-/// Access flags from the Dalvik Virtual Machine
-pub struct DvmAccessFlags(shuriken::access_flags_e);
-
 /// Type alias for Shuriken's `hdvmfield_t`
 ///
 /// Structure which keeps information from a field this can be accessed from the class data
+#[derive(Debug)]
 pub struct DvmField(shuriken::hdvmfield_t);
 
 /// Type alias for Shuriken's `hdvmmethod_t`
 ///
 /// Structure which keeps information from a method this can be accessed from the class data
-pub struct DvmMethod(shuriken::hdvmmethod_t);
+#[derive(Debug)]
+pub struct DvmMethod {
+    class_name: String,
+    method_name: String,
+    prototype: String,
+    access_flags: Vec<DvmAccessFlag>,
+    code_size: usize,
+    code: Vec<u8>,
+    dalvik_name: String,
+    demangled_name: String
+}
+
+impl DvmMethod {
+    unsafe fn from_hdvmmethod_t(method: shuriken::hdvmmethod_t) -> Self {
+        let class_name = CStr::from_ptr(method.class_name)
+            .to_str()
+            .expect("Error: string is not valid UTF-8")
+            .to_string();
+
+        let method_name = CStr::from_ptr(method.method_name)
+            .to_str()
+            .expect("Error: string is not valid UTF-8")
+            .to_string();
+
+        let prototype = CStr::from_ptr(method.prototype)
+            .to_str()
+            .expect("Error: string is not valid UTF-8")
+            .to_string();
+
+        let access_flags = DvmAccessFlag::parse(method.access_flags.into(), DvmAccessFlagType::Method);
+
+        let dalvik_name = CStr::from_ptr(method.dalvik_name)
+            .to_str()
+            .expect("Error: string is not valid UTF-8")
+            .to_string();
+
+        let demangled_name = CStr::from_ptr(method.demangled_name)
+            .to_str()
+            .expect("Error: string is not valid UTF-8")
+            .to_string();
+
+        let code = from_raw_parts(method.code, method.code_size as usize).to_vec();
+
+        DvmMethod {
+            class_name,
+            method_name,
+            prototype,
+            access_flags,
+            code_size: method.code_size as usize,
+            code,
+            dalvik_name,
+            demangled_name
+        }
+    }
+}
+
 
 /// Type alias for Shuriken's `hdvmclass_t`
 ///
 /// Structure representing the classes in the DEX file
-pub struct DvmClass(shuriken::hdvmclass_t);
+/// TODO: build the arrays in this. Right now we just have pointers which is not convinient
+#[derive(Debug)]
+pub struct DvmClass {
+    class_name: String,
+    super_class: String,
+    source_file: String,
+    access_flags: Vec<DvmAccessFlag>,
+    direct_methods_size: usize,
+    direct_methods: Vec<DvmMethod>,
+    virtual_methods_size: usize,
+    virtual_methods: Vec<DvmMethod>,
+    instance_fields_size: usize,
+    instance_fields: Vec<DvmField>,
+    static_fields_size: usize,
+    static_fields: Vec<DvmField>
+}
+
 
 // --------------------------- Disassembler Data ---------------------------
 
@@ -181,7 +257,13 @@ impl DexContext {
     /// TODO: need to research how to properly take ownership of this string
     /// Maybe we can loop through the bytes and build a `String` like this?
     pub fn get_string_by_id(&self, string_id: usize) -> String {
-        todo!()
+        unsafe {
+            let foo = shuriken::get_string_by_id(self.0, string_id);
+            let c_str: &CStr = CStr::from_ptr(foo);
+            let str_slice: &str = c_str.to_str().unwrap();
+            let str_buf: String = str_slice.to_owned();  // if necessary
+            str_buf
+        }
     }
 
     /// Get the number of classes in the DEX file
@@ -193,7 +275,69 @@ impl DexContext {
 
     /// Get a class structure given an ID
     pub fn get_class_by_id(&self, id: u16) -> DvmClass {
-        todo!();
+        let dvm_class = unsafe { *shuriken::get_class_by_id(self.0, id) };
+
+        // Decode from pointers
+        let class_name = unsafe {
+            CStr::from_ptr(dvm_class.class_name)
+                 .to_str()
+                 .expect("Error: string is not valid UTF-8")
+                 .to_string()
+        };
+
+        let super_class = unsafe {
+            CStr::from_ptr(dvm_class.super_class)
+                 .to_str()
+                 .expect("Error: string is not valid UTF-8")
+                 .to_string()
+        };
+
+        let source_file = unsafe {
+            CStr::from_ptr(dvm_class.source_file)
+                 .to_str()
+                 .expect("Error: string is not valid UTF-8")
+                 .to_string()
+        };
+
+        let access_flags = DvmAccessFlag::parse(
+            dvm_class.access_flags as u32,
+            DvmAccessFlagType::Class
+        );
+
+        let direct_methods = unsafe {
+            from_raw_parts(
+                dvm_class.direct_methods,
+                dvm_class.direct_methods_size.into()
+            )
+                .iter()
+                .map(|method| DvmMethod::from_hdvmmethod_t(*method))
+                .collect::<Vec<DvmMethod>>()
+        };
+
+        let virtual_methods = unsafe {
+            from_raw_parts(
+                dvm_class.virtual_methods,
+                dvm_class.virtual_methods_size.into()
+            )
+                .iter()
+                .map(|method| DvmMethod::from_hdvmmethod_t(*method))
+                .collect::<Vec<DvmMethod>>()
+        };
+
+        DvmClass {
+            class_name,
+            super_class,
+            source_file,
+            access_flags,
+            direct_methods_size: dvm_class.direct_methods_size as usize,
+            direct_methods,
+            virtual_methods_size: dvm_class.virtual_methods_size as usize,
+            virtual_methods,
+            instance_fields_size: dvm_class.instance_fields_size as usize,
+            instance_fields: Vec::new(),
+            static_fields_size: dvm_class.static_fields_size as usize,
+            static_fields: Vec::new()
+        }
     }
 
     /// Get a class structure given a class name
