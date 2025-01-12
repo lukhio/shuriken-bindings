@@ -8,7 +8,7 @@
 
 pub mod dvm_access_flags;
 
-use std::path::{ Path, PathBuf };
+use std::path::Path;
 use std::ffi::{ CStr, CString };
 use std::slice::from_raw_parts;
 
@@ -31,18 +31,114 @@ pub struct ApkContext(shuriken::hApkContext);
 /// Type alias for Shuriken's `htype_e`
 ///
 /// DEX types of the DVM we have by default fundamental, classes and array
-pub struct DexTypes(shuriken::htype_e);
+#[derive(Debug, PartialEq)]
+pub enum DexTypes {
+    /// Fundamental type (int, float...)
+    Fundamental,
+    /// User defined class
+    Class,
+    /// Array type
+    Array,
+    /// Maybe wrong?
+    Unknown
+}
 
 /// Type alias for Shuriken's `hfundamental_e`
 ///
 /// Enum with the basic DEX types
-pub struct DexBasicTypes(shuriken::hfundamental_e);
+#[derive(Debug)]
+pub enum DexBasicTypes {
+    Boolean,
+    Byte,
+    Char,
+    Double,
+    Float,
+    Int,
+    Long,
+    Short,
+    Void,
+    FundamentalNone
+}
 
 /// Type alias for Shuriken's `hdvmfield_t`
 ///
 /// Structure which keeps information from a field this can be accessed from the class data
 #[derive(Debug)]
-pub struct DvmField(shuriken::hdvmfield_t);
+pub struct DvmField {
+    /// Name of the class the field belong to
+    class_name: String,
+    /// Name of the field
+    name: String,
+    /// Type of the field
+    field_type: DexTypes,
+    /// If `field_type` is `Fundamental`
+    ///
+    /// Note: if `field_type` is `Array` and the base type is
+    /// a fundamental value, it contains that value
+    fundamental_value: DexBasicTypes,
+    /// String value of the type
+    type_value: String,
+    /// Access flags of the field
+    access_flags: Vec<DvmAccessFlag>
+}
+
+impl DvmField {
+    /// Convert an `hdvmfield_t` into a `DvmField`
+    unsafe fn from_hdvmfield_t(field: shuriken::hdvmfield_t) -> Self {
+        let class_name = CStr::from_ptr(field.class_name)
+            .to_str()
+            .expect("Error: string is not valid UTF-8")
+            .to_string();
+
+        let name = CStr::from_ptr(field.name)
+            .to_str()
+            .expect("Error: string is not valid UTF-8")
+            .to_string();
+
+        let type_value = CStr::from_ptr(field.type_value)
+            .to_str()
+            .expect("Error: string is not valid UTF-8")
+            .to_string();
+
+        let access_flags = DvmAccessFlag::parse(
+            field.access_flags as u32,
+            DvmAccessFlagType::Class
+        );
+
+        let field_type = match field.type_ {
+            0 => DexTypes::Fundamental,
+            1 => DexTypes::Class,
+            2 => DexTypes::Array,
+            _ => DexTypes::Unknown,
+        };
+
+        let fundamental_value = if field_type == DexTypes::Fundamental {
+            match field.fundamental_value {
+                0 => DexBasicTypes::Boolean,
+                1 => DexBasicTypes::Byte,
+                2 => DexBasicTypes::Char,
+                3 => DexBasicTypes::Double,
+                4 => DexBasicTypes::Float,
+                5 => DexBasicTypes::Int,
+                6 => DexBasicTypes::Long,
+                7 => DexBasicTypes::Short,
+                8 => DexBasicTypes::Void,
+                _ => panic!("Invalid fundamental value")
+            }
+        } else {
+            DexBasicTypes::FundamentalNone
+        };
+
+        Self {
+            class_name,
+            name,
+            field_type: DexTypes::Fundamental,
+            fundamental_value: DexBasicTypes::Boolean,
+            type_value,
+            access_flags
+        }
+    }
+}
 
 /// Type alias for Shuriken's `hdvmmethod_t`
 ///
@@ -60,6 +156,7 @@ pub struct DvmMethod {
 }
 
 impl DvmMethod {
+    /// Convert an `hdvmmethod_t` into a `DvmMethod`
     unsafe fn from_hdvmmethod_t(method: shuriken::hdvmmethod_t) -> Self {
         let class_name = CStr::from_ptr(method.class_name)
             .to_str()
@@ -322,6 +419,26 @@ impl DexContext {
                 .collect::<Vec<DvmMethod>>()
         };
 
+        let instance_fields =  unsafe {
+            from_raw_parts(
+                dvm_class.instance_fields,
+                dvm_class.instance_fields_size.into()
+            )
+                .iter()
+                .map(|field| DvmField::from_hdvmfield_t(*field))
+                .collect::<Vec<DvmField>>()
+        };
+
+        let static_fields =  unsafe {
+            from_raw_parts(
+                dvm_class.static_fields,
+                dvm_class.static_fields_size.into()
+            )
+                .iter()
+                .map(|field| DvmField::from_hdvmfield_t(*field))
+                .collect::<Vec<DvmField>>()
+        };
+
         DvmClass {
             class_name,
             super_class,
@@ -332,9 +449,9 @@ impl DexContext {
             virtual_methods_size: dvm_class.virtual_methods_size as usize,
             virtual_methods,
             instance_fields_size: dvm_class.instance_fields_size as usize,
-            instance_fields: Vec::new(),
+            instance_fields,
             static_fields_size: dvm_class.static_fields_size as usize,
-            static_fields: Vec::new()
+            static_fields
         }
     }
 
