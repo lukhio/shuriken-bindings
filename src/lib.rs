@@ -720,7 +720,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_fields() {
+    fn test_dex_fields() {
         use std::collections::HashMap;
 
         let fields = vec![
@@ -743,8 +743,6 @@ mod tests {
         assert_eq!(&class.super_class, "java.lang.Object");
         assert_eq!(&class.source_file, "DexParserTest.java");
 
-        assert_eq!(class.direct_methods_size, 4);
-        assert_eq!(class.virtual_methods_size, 0);
         assert_eq!(class.instance_fields_size, 2);
         assert_eq!(class.static_fields_size, 0);
 
@@ -770,6 +768,54 @@ mod tests {
                 assert_eq!(field.fundamental_value, DexBasicTypes::Int);
                 assert_eq!(field.type_value, "I");
             }
+        }
+    }
+
+    #[test]
+    fn test_dex_methods() {
+        use std::collections::HashMap;
+
+        let methods = vec![
+            HashMap::from([
+                ("dalvik_name", "LDexParserTest;-><init>()V"),
+                ("flags", "1"),
+            ]),
+            HashMap::from([
+                ("dalvik_name", "LDexParserTest;->calculateSum(II)I"),
+                ("flags", "2"),
+            ]),
+            HashMap::from([
+                ("dalvik_name", "LDexParserTest;->main([Ljava/lang/String;)V"),
+                ("flags", "9"),
+            ]),
+            HashMap::from([
+                ("dalvik_name", "LDexParserTest;->printMessage()V"),
+                ("flags", "2"),
+            ]),
+        ];
+
+        let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+        let class = context.get_class_by_id(0);
+
+        assert_eq!(&class.class_name, "DexParserTest");
+        assert_eq!(&class.super_class, "java.lang.Object");
+        assert_eq!(&class.source_file, "DexParserTest.java");
+
+        assert_eq!(class.direct_methods_size, 4);
+        assert_eq!(class.virtual_methods_size, 0);
+
+        let class_descriptor = String::from("LDexParserTest;");
+        let access_flags = vec![DvmAccessFlag::ACC_PUBLIC];
+
+        for (idx, method) in class.direct_methods.iter().enumerate() {
+            let access_flags = DvmAccessFlag::parse(
+                methods[idx]["flags"].parse::<u32>().unwrap(),
+                DvmAccessFlagType::Method
+            );
+
+            assert_eq!(method.class_name, class_descriptor);
+            assert_eq!(method.dalvik_name, methods[idx]["dalvik_name"]);
+            assert_eq!(method.access_flags, access_flags);
         }
     }
 }
