@@ -474,8 +474,16 @@ impl DexContext {
     }
 
     /// Get a method structure given a full dalvik name.
-    pub fn get_method_by_name(&self, method_name: String) -> DvmMethod {
-        todo!();
+    pub fn get_method_by_name(&self, method_name: &str) -> Option<DvmMethod> {
+        let c_str = CString::new(method_name)
+            .expect("CString::new failed");
+
+        let dvm_method = unsafe { shuriken::get_method_by_name(self.0, c_str.as_ptr()) };
+        if ! dvm_method.is_null() {
+            Some(unsafe { DvmMethod::from_hdvmmethod_t(*dvm_method) })
+        } else {
+            None
+        }
     }
 
 
@@ -854,6 +862,18 @@ mod tests {
             assert_eq!(class.as_ref().unwrap().super_class, "java.lang.Object");
             assert_eq!(class.as_ref().unwrap().source_file, "DexParserTest.java");
             assert_eq!(class.as_ref().unwrap().access_flags, vec![DvmAccessFlag::ACC_PUBLIC]);
+        }
+
+        #[test]
+        fn test_get_method_by_name() {
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let method = context.get_method_by_name("LDexParserTest;->printMessage()V");
+
+            assert!(method.is_some());
+            assert_eq!(method.as_ref().unwrap().method_name, "printMessage");
+            assert_eq!(method.as_ref().unwrap().class_name, "LDexParserTest;");
+            assert_eq!(method.as_ref().unwrap().prototype, "()V");
+            assert_eq!(method.as_ref().unwrap().access_flags, vec![DvmAccessFlag::ACC_PRIVATE]);
         }
     }
 }
