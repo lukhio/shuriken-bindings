@@ -609,213 +609,214 @@ impl ApkContext {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::fs;
-    use std::path::PathBuf;
+    mod dex {
+        use super::super::*;
+        use std::fs;
+        use std::path::PathBuf;
 
+        const TEST_FILES_PATH: &str = "test_files/";
 
-    const TEST_FILES_PATH: &str = "test_files/";
+        #[test]
+        fn test_parse_dex() {
+            let paths = fs::read_dir(TEST_FILES_PATH).unwrap();
 
-    #[test]
-    fn test_parse_dex() {
-        let paths = fs::read_dir(TEST_FILES_PATH).unwrap();
+            for path in paths {
+                let path = path.unwrap().path();
 
-        for path in paths {
-            let path = path.unwrap().path();
+                // Only testing DEX files
+                if path.extension().unwrap() == "apk" {
+                    continue;
+                }
 
-            // Only testing DEX files
-            if path.extension().unwrap() == "apk" {
-                continue;
-            }
-
-            let context = DexContext::parse_dex(&path);
-        }
-    }
-
-    #[test]
-    fn test_nb_strings_dex() {
-        use std::collections::HashMap;
-
-        let counts = HashMap::from([
-            ("test_files/_pi.dex", 32usize),
-            ("test_files/_null.dex", 23),
-            ("test_files/_float.dex", 71),
-            ("test_files/_test_lifter.dex", 16),
-            ("test_files/_long.dex", 28),
-            ("test_files/_double.dex", 71),
-            ("test_files/DexParserTest.dex", 33),
-            ("test_files/_exception.dex", 31),
-            ("test_files/_cast.dex", 29),
-            ("test_files/test_zip.apk", 0),
-            ("test_files/_loop.dex", 23),
-            ("test_files/TestFieldsLifter.dex", 44),
-            ("test_files/_instance.dex", 28),
-            ("test_files/_switch.dex", 33),
-            ("test_files/_int.dex", 27)
-        ]);
-
-        let paths = fs::read_dir(TEST_FILES_PATH).unwrap();
-
-        for path in paths {
-            let path = path.unwrap().path();
-
-            // Only testing DEX files
-            if path.extension().unwrap() == "apk" {
-                continue;
-            }
-
-            let context = DexContext::parse_dex(&path);
-            let count = context.get_number_of_strings();
-
-            assert_eq!(count, *counts.get(&path.to_str().unwrap()).unwrap());
-        }
-    }
-
-    #[test]
-    fn test_dex_strings() {
-        let strings = vec![
-            " and ",
-            " is: ",
-            "<init>",
-            "DexParserTest.java",
-            "Field 1: ",
-            "Field 2: ",
-            "Hello, Dex Parser!",
-            "I",
-            "III",
-            "L",
-            "LDexParserTest;",
-            "LI",
-            "LL",
-            "Ljava/io/PrintStream;",
-            "Ljava/lang/Object;",
-            "Ljava/lang/String;",
-            "Ljava/lang/StringBuilder;",
-            "Ljava/lang/System;",
-            "Sum of ",
-            "This is a test message printed from DexParserTest class.",
-            "V",
-            "VL",
-            "[Ljava/lang/String;",
-            "append",
-            "calculateSum",
-            "field1",
-            "field2",
-            "main",
-            "out",
-            "printMessage",
-            "println",
-            "toString",
-            "~~D8{\"backend\":\"dex\",\"compilation-mode\":\"debug\",\"has-checksums\":false,\"min-api\":1,\"version\":\"3.3.20-dev+aosp5\"}"
-        ];
-
-        let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
-        println!("{context:#?}");
-
-        assert_eq!(context.get_number_of_strings(), 33);
-
-        for idx in 0..context.get_number_of_strings() {
-            assert_eq!(context.get_string_by_id(idx), strings[idx]);
-        }
-    }
-
-    #[test]
-    fn test_dex_fields() {
-        use std::collections::HashMap;
-
-        let fields = vec![
-            HashMap::from([
-                ("name", "field1"),
-                ("flags", "2"),
-                ("type", "I")
-            ]),
-            HashMap::from([
-                ("name", "field2"),
-                ("flags", "2"),
-                ("type", "Ljava/lang/String;"),
-            ]),
-        ];
-
-        let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
-        let class = context.get_class_by_id(0);
-
-        assert_eq!(&class.class_name, "DexParserTest");
-        assert_eq!(&class.super_class, "java.lang.Object");
-        assert_eq!(&class.source_file, "DexParserTest.java");
-
-        assert_eq!(class.instance_fields_size, 2);
-        assert_eq!(class.static_fields_size, 0);
-
-        let class_descriptor = String::from("LDexParserTest;");
-        let access_flags = vec![DvmAccessFlag::ACC_PUBLIC];
-
-        for (idx, field) in class.instance_fields.iter().enumerate() {
-            let access_flags = DvmAccessFlag::parse(
-                fields[idx]["flags"].parse::<u32>().unwrap(),
-                DvmAccessFlagType::Field
-            );
-
-            assert_eq!(field.class_name, class_descriptor);
-            assert_eq!(field.name, fields[idx]["name"]);
-            assert_eq!(field.access_flags, access_flags);
-
-            if fields[idx]["type"].starts_with("L") {
-                assert_eq!(field.field_type, DexTypes::Class);
-                assert_eq!(field.fundamental_value, DexBasicTypes::FundamentalNone);
-                assert_eq!(field.type_value, "Ljava/lang/String;");
-            } else {
-                assert_eq!(field.field_type, DexTypes::Fundamental);
-                assert_eq!(field.fundamental_value, DexBasicTypes::Int);
-                assert_eq!(field.type_value, "I");
+                let context = DexContext::parse_dex(&path);
             }
         }
-    }
 
-    #[test]
-    fn test_dex_methods() {
-        use std::collections::HashMap;
+        #[test]
+        fn test_nb_strings() {
+            use std::collections::HashMap;
 
-        let methods = vec![
-            HashMap::from([
-                ("dalvik_name", "LDexParserTest;-><init>()V"),
-                ("flags", "1"),
-            ]),
-            HashMap::from([
-                ("dalvik_name", "LDexParserTest;->calculateSum(II)I"),
-                ("flags", "2"),
-            ]),
-            HashMap::from([
-                ("dalvik_name", "LDexParserTest;->main([Ljava/lang/String;)V"),
-                ("flags", "9"),
-            ]),
-            HashMap::from([
-                ("dalvik_name", "LDexParserTest;->printMessage()V"),
-                ("flags", "2"),
-            ]),
-        ];
+            let counts = HashMap::from([
+                ("test_files/_pi.dex", 32usize),
+                ("test_files/_null.dex", 23),
+                ("test_files/_float.dex", 71),
+                ("test_files/_test_lifter.dex", 16),
+                ("test_files/_long.dex", 28),
+                ("test_files/_double.dex", 71),
+                ("test_files/DexParserTest.dex", 33),
+                ("test_files/_exception.dex", 31),
+                ("test_files/_cast.dex", 29),
+                ("test_files/test_zip.apk", 0),
+                ("test_files/_loop.dex", 23),
+                ("test_files/TestFieldsLifter.dex", 44),
+                ("test_files/_instance.dex", 28),
+                ("test_files/_switch.dex", 33),
+                ("test_files/_int.dex", 27)
+            ]);
 
-        let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
-        let class = context.get_class_by_id(0);
+            let paths = fs::read_dir(TEST_FILES_PATH).unwrap();
 
-        assert_eq!(&class.class_name, "DexParserTest");
-        assert_eq!(&class.super_class, "java.lang.Object");
-        assert_eq!(&class.source_file, "DexParserTest.java");
+            for path in paths {
+                let path = path.unwrap().path();
 
-        assert_eq!(class.direct_methods_size, 4);
-        assert_eq!(class.virtual_methods_size, 0);
+                // Only testing DEX files
+                if path.extension().unwrap() == "apk" {
+                    continue;
+                }
 
-        let class_descriptor = String::from("LDexParserTest;");
-        let access_flags = vec![DvmAccessFlag::ACC_PUBLIC];
+                let context = DexContext::parse_dex(&path);
+                let count = context.get_number_of_strings();
 
-        for (idx, method) in class.direct_methods.iter().enumerate() {
-            let access_flags = DvmAccessFlag::parse(
-                methods[idx]["flags"].parse::<u32>().unwrap(),
-                DvmAccessFlagType::Method
-            );
+                assert_eq!(count, *counts.get(&path.to_str().unwrap()).unwrap());
+            }
+        }
 
-            assert_eq!(method.class_name, class_descriptor);
-            assert_eq!(method.dalvik_name, methods[idx]["dalvik_name"]);
-            assert_eq!(method.access_flags, access_flags);
+        #[test]
+        fn test_get_string() {
+            let strings = vec![
+                " and ",
+                " is: ",
+                "<init>",
+                "DexParserTest.java",
+                "Field 1: ",
+                "Field 2: ",
+                "Hello, Dex Parser!",
+                "I",
+                "III",
+                "L",
+                "LDexParserTest;",
+                "LI",
+                "LL",
+                "Ljava/io/PrintStream;",
+                "Ljava/lang/Object;",
+                "Ljava/lang/String;",
+                "Ljava/lang/StringBuilder;",
+                "Ljava/lang/System;",
+                "Sum of ",
+                "This is a test message printed from DexParserTest class.",
+                "V",
+                "VL",
+                "[Ljava/lang/String;",
+                "append",
+                "calculateSum",
+                "field1",
+                "field2",
+                "main",
+                "out",
+                "printMessage",
+                "println",
+                "toString",
+                "~~D8{\"backend\":\"dex\",\"compilation-mode\":\"debug\",\"has-checksums\":false,\"min-api\":1,\"version\":\"3.3.20-dev+aosp5\"}"
+            ];
+
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            println!("{context:#?}");
+
+            assert_eq!(context.get_number_of_strings(), 33);
+
+            for idx in 0..context.get_number_of_strings() {
+                assert_eq!(context.get_string_by_id(idx), strings[idx]);
+            }
+        }
+
+        #[test]
+        fn test_fields() {
+            use std::collections::HashMap;
+
+            let fields = vec![
+                HashMap::from([
+                    ("name", "field1"),
+                    ("flags", "2"),
+                    ("type", "I")
+                ]),
+                HashMap::from([
+                    ("name", "field2"),
+                    ("flags", "2"),
+                    ("type", "Ljava/lang/String;"),
+                ]),
+            ];
+
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let class = context.get_class_by_id(0);
+
+            assert_eq!(&class.class_name, "DexParserTest");
+            assert_eq!(&class.super_class, "java.lang.Object");
+            assert_eq!(&class.source_file, "DexParserTest.java");
+
+            assert_eq!(class.instance_fields_size, 2);
+            assert_eq!(class.static_fields_size, 0);
+
+            let class_descriptor = String::from("LDexParserTest;");
+            let access_flags = vec![DvmAccessFlag::ACC_PUBLIC];
+
+            for (idx, field) in class.instance_fields.iter().enumerate() {
+                let access_flags = DvmAccessFlag::parse(
+                    fields[idx]["flags"].parse::<u32>().unwrap(),
+                    DvmAccessFlagType::Field
+                );
+
+                assert_eq!(field.class_name, class_descriptor);
+                assert_eq!(field.name, fields[idx]["name"]);
+                assert_eq!(field.access_flags, access_flags);
+
+                if fields[idx]["type"].starts_with("L") {
+                    assert_eq!(field.field_type, DexTypes::Class);
+                    assert_eq!(field.fundamental_value, DexBasicTypes::FundamentalNone);
+                    assert_eq!(field.type_value, "Ljava/lang/String;");
+                } else {
+                    assert_eq!(field.field_type, DexTypes::Fundamental);
+                    assert_eq!(field.fundamental_value, DexBasicTypes::Int);
+                    assert_eq!(field.type_value, "I");
+                }
+            }
+        }
+
+        #[test]
+        fn test_methods() {
+            use std::collections::HashMap;
+
+            let methods = vec![
+                HashMap::from([
+                    ("dalvik_name", "LDexParserTest;-><init>()V"),
+                    ("flags", "1"),
+                ]),
+                HashMap::from([
+                    ("dalvik_name", "LDexParserTest;->calculateSum(II)I"),
+                    ("flags", "2"),
+                ]),
+                HashMap::from([
+                    ("dalvik_name", "LDexParserTest;->main([Ljava/lang/String;)V"),
+                    ("flags", "9"),
+                ]),
+                HashMap::from([
+                    ("dalvik_name", "LDexParserTest;->printMessage()V"),
+                    ("flags", "2"),
+                ]),
+            ];
+
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let class = context.get_class_by_id(0);
+
+            assert_eq!(&class.class_name, "DexParserTest");
+            assert_eq!(&class.super_class, "java.lang.Object");
+            assert_eq!(&class.source_file, "DexParserTest.java");
+
+            assert_eq!(class.direct_methods_size, 4);
+            assert_eq!(class.virtual_methods_size, 0);
+
+            let class_descriptor = String::from("LDexParserTest;");
+            let access_flags = vec![DvmAccessFlag::ACC_PUBLIC];
+
+            for (idx, method) in class.direct_methods.iter().enumerate() {
+                let access_flags = DvmAccessFlag::parse(
+                    methods[idx]["flags"].parse::<u32>().unwrap(),
+                    DvmAccessFlagType::Method
+                );
+
+                assert_eq!(method.class_name, class_descriptor);
+                assert_eq!(method.dalvik_name, methods[idx]["dalvik_name"]);
+                assert_eq!(method.access_flags, access_flags);
+            }
         }
     }
 }
