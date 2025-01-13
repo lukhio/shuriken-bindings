@@ -348,16 +348,13 @@ impl DexContext {
     }
 
     /// Get a string given its ID
-    ///
-    /// TODO: need to research how to properly take ownership of this string
-    /// Maybe we can loop through the bytes and build a `String` like this?
     pub fn get_string_by_id(&self, string_id: usize) -> String {
         unsafe {
-            let foo = shuriken::get_string_by_id(self.0, string_id);
-            let c_str: &CStr = CStr::from_ptr(foo);
-            let str_slice: &str = c_str.to_str().unwrap();
-            let str_buf: String = str_slice.to_owned();  // if necessary
-            str_buf
+            let c_string = shuriken::get_string_by_id(self.0, string_id);
+            CStr::from_ptr(c_string)
+                .to_str()
+                .expect("String does not contain valid UTF-8")
+                .to_owned()
         }
     }
 
@@ -614,6 +611,7 @@ impl ApkContext {
 mod tests {
     use super::*;
     use std::fs;
+    use std::path::PathBuf;
 
 
     const TEST_FILES_PATH: &str = "test_files/";
@@ -670,6 +668,54 @@ mod tests {
             let count = context.get_number_of_strings();
 
             assert_eq!(count, *counts.get(&path.to_str().unwrap()).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_dex_strings() {
+        let strings = vec![
+            " and ",
+            " is: ",
+            "<init>",
+            "DexParserTest.java",
+            "Field 1: ",
+            "Field 2: ",
+            "Hello, Dex Parser!",
+            "I",
+            "III",
+            "L",
+            "LDexParserTest;",
+            "LI",
+            "LL",
+            "Ljava/io/PrintStream;",
+            "Ljava/lang/Object;",
+            "Ljava/lang/String;",
+            "Ljava/lang/StringBuilder;",
+            "Ljava/lang/System;",
+            "Sum of ",
+            "This is a test message printed from DexParserTest class.",
+            "V",
+            "VL",
+            "[Ljava/lang/String;",
+            "append",
+            "calculateSum",
+            "field1",
+            "field2",
+            "main",
+            "out",
+            "printMessage",
+            "println",
+            "toString",
+            "~~D8{\"backend\":\"dex\",\"compilation-mode\":\"debug\",\"has-checksums\":false,\"min-api\":1,\"version\":\"3.3.20-dev+aosp5\"}"
+        ];
+
+        let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+        println!("{context:#?}");
+
+        assert_eq!(context.get_number_of_strings(), 33);
+
+        for idx in 0..context.get_number_of_strings() {
+            assert_eq!(context.get_string_by_id(idx), strings[idx]);
         }
     }
 
