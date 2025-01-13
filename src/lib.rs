@@ -13,6 +13,8 @@ use std::ffi::{ CStr, CString };
 use std::slice::from_raw_parts;
 
 
+use shuriken::hdvmclass_t;
+
 use crate::dvm_access_flags::{ DvmAccessFlag, DvmAccessFlagType };
 
 mod shuriken {
@@ -221,6 +223,90 @@ pub struct DvmClass {
     static_fields: Vec<DvmField>
 }
 
+impl DvmClass {
+    fn from_hdvmclass_t(dvm_class: shuriken::hdvmclass_t) -> Self {
+        let class_name = unsafe {
+            CStr::from_ptr(dvm_class.class_name)
+                 .to_str()
+                 .expect("Error: string is not valid UTF-8")
+                 .to_string()
+        };
+
+        let super_class = unsafe {
+            CStr::from_ptr(dvm_class.super_class)
+                 .to_str()
+                 .expect("Error: string is not valid UTF-8")
+                 .to_string()
+        };
+
+        let source_file = unsafe {
+            CStr::from_ptr(dvm_class.source_file)
+                 .to_str()
+                 .expect("Error: string is not valid UTF-8")
+                 .to_string()
+        };
+
+        let access_flags = DvmAccessFlag::parse(
+            dvm_class.access_flags as u32,
+            DvmAccessFlagType::Class
+        );
+
+        let direct_methods = unsafe {
+            from_raw_parts(
+                dvm_class.direct_methods,
+                dvm_class.direct_methods_size.into()
+            )
+                .iter()
+                .map(|method| DvmMethod::from_hdvmmethod_t(*method))
+                .collect::<Vec<DvmMethod>>()
+        };
+
+        let virtual_methods = unsafe {
+            from_raw_parts(
+                dvm_class.virtual_methods,
+                dvm_class.virtual_methods_size.into()
+            )
+                .iter()
+                .map(|method| DvmMethod::from_hdvmmethod_t(*method))
+                .collect::<Vec<DvmMethod>>()
+        };
+
+        let instance_fields =  unsafe {
+            from_raw_parts(
+                dvm_class.instance_fields,
+                dvm_class.instance_fields_size.into()
+            )
+                .iter()
+                .map(|field| DvmField::from_hdvmfield_t(*field))
+                .collect::<Vec<DvmField>>()
+        };
+
+        let static_fields =  unsafe {
+            from_raw_parts(
+                dvm_class.static_fields,
+                dvm_class.static_fields_size.into()
+            )
+                .iter()
+                .map(|field| DvmField::from_hdvmfield_t(*field))
+                .collect::<Vec<DvmField>>()
+        };
+
+        DvmClass {
+            class_name,
+            super_class,
+            source_file,
+            access_flags,
+            direct_methods_size: dvm_class.direct_methods_size as usize,
+            direct_methods,
+            virtual_methods_size: dvm_class.virtual_methods_size as usize,
+            virtual_methods,
+            instance_fields_size: dvm_class.instance_fields_size as usize,
+            instance_fields,
+            static_fields_size: dvm_class.static_fields_size as usize,
+            static_fields
+        }
+    }
+}
 
 // --------------------------- Disassembler Data ---------------------------
 
@@ -336,125 +422,62 @@ impl DexContext {
         let c_str = CString::new(filepath.to_path_buf().into_os_string().into_string().unwrap()).unwrap();
         let c_world = c_str.as_ptr();
         unsafe {
-            DexContext(shuriken::parse_dex(c_world))
+            DexContext {
+                ptr: shuriken::parse_dex(c_world),
+                classes: Vec::new(),
+                methods: Vec::new(),
+            }
         }
     }
 
     /// Get the number of strings in the DEX file
     pub fn get_number_of_strings(&self) -> usize {
         unsafe {
-            shuriken::get_number_of_strings(self.0)
+            shuriken::get_number_of_strings(self.ptr)
         }
     }
 
     /// Get a string given its ID
-    pub fn get_string_by_id(&self, string_id: usize) -> String {
+    pub fn get_string_by_id(&self, string_id: usize) -> Option<String> {
         unsafe {
-            let c_string = shuriken::get_string_by_id(self.0, string_id);
-            CStr::from_ptr(c_string)
-                .to_str()
-                .expect("String does not contain valid UTF-8")
-                .to_owned()
+            let c_string = shuriken::get_string_by_id(self.ptr, string_id);
+            if let Ok(string) = CStr::from_ptr(c_string).to_str() {
+                Some(string.to_owned())
+            } else {
+                None
+            }
         }
     }
 
     /// Get the number of classes in the DEX file
     pub fn get_number_of_classes(&self) -> usize {
         unsafe {
-            shuriken::get_number_of_classes(self.0).into()
+            shuriken::get_number_of_classes(self.ptr).into()
         }
     }
 
     /// Get a class structure given an ID
-    pub fn get_class_by_id(&self, id: u16) -> DvmClass {
-        let dvm_class = unsafe { *shuriken::get_class_by_id(self.0, id) };
+    pub fn get_class_by_id(&self, id: u16) -> Option<DvmClass> {
+        let dvm_class_ptr = unsafe { shuriken::get_class_by_id(self.ptr, id) };
 
-        // Decode from pointers
-        let class_name = unsafe {
-            CStr::from_ptr(dvm_class.class_name)
-                 .to_str()
-                 .expect("Error: string is not valid UTF-8")
-                 .to_string()
-        };
-
-        let super_class = unsafe {
-            CStr::from_ptr(dvm_class.super_class)
-                 .to_str()
-                 .expect("Error: string is not valid UTF-8")
-                 .to_string()
-        };
-
-        let source_file = unsafe {
-            CStr::from_ptr(dvm_class.source_file)
-                 .to_str()
-                 .expect("Error: string is not valid UTF-8")
-                 .to_string()
-        };
-
-        let access_flags = DvmAccessFlag::parse(
-            dvm_class.access_flags as u32,
-            DvmAccessFlagType::Class
-        );
-
-        let direct_methods = unsafe {
-            from_raw_parts(
-                dvm_class.direct_methods,
-                dvm_class.direct_methods_size.into()
-            )
-                .iter()
-                .map(|method| DvmMethod::from_hdvmmethod_t(*method))
-                .collect::<Vec<DvmMethod>>()
-        };
-
-        let virtual_methods = unsafe {
-            from_raw_parts(
-                dvm_class.virtual_methods,
-                dvm_class.virtual_methods_size.into()
-            )
-                .iter()
-                .map(|method| DvmMethod::from_hdvmmethod_t(*method))
-                .collect::<Vec<DvmMethod>>()
-        };
-
-        let instance_fields =  unsafe {
-            from_raw_parts(
-                dvm_class.instance_fields,
-                dvm_class.instance_fields_size.into()
-            )
-                .iter()
-                .map(|field| DvmField::from_hdvmfield_t(*field))
-                .collect::<Vec<DvmField>>()
-        };
-
-        let static_fields =  unsafe {
-            from_raw_parts(
-                dvm_class.static_fields,
-                dvm_class.static_fields_size.into()
-            )
-                .iter()
-                .map(|field| DvmField::from_hdvmfield_t(*field))
-                .collect::<Vec<DvmField>>()
-        };
-
-        DvmClass {
-            class_name,
-            super_class,
-            source_file,
-            access_flags,
-            direct_methods_size: dvm_class.direct_methods_size as usize,
-            direct_methods,
-            virtual_methods_size: dvm_class.virtual_methods_size as usize,
-            virtual_methods,
-            instance_fields_size: dvm_class.instance_fields_size as usize,
-            instance_fields,
-            static_fields_size: dvm_class.static_fields_size as usize,
-            static_fields
+        if ! dvm_class_ptr.is_null() {
+            Some(DvmClass::from_hdvmclass_t(unsafe { *dvm_class_ptr }))
+        } else {
+            None
         }
     }
 
     /// Get a class structure given a class name
-    pub fn get_class_by_name(&self, class_name: String) -> DvmClass {
-        todo!();
+    pub fn get_class_by_name(&self, class_name: &str) -> Option<DvmClass> {
+        let c_str = CString::new(class_name)
+            .expect("CString::new failed");
+
+        let dvm_class = unsafe { shuriken::get_class_by_name(self.ptr, c_str.as_ptr()) };
+        if ! dvm_class.is_null() {
+            Some(DvmClass::from_hdvmclass_t(unsafe { *dvm_class }))
+        } else {
+            None
+        }
     }
 
     /// Get a method structure given a full dalvik name.
@@ -715,7 +738,9 @@ mod tests {
             assert_eq!(context.get_number_of_strings(), 33);
 
             for idx in 0..context.get_number_of_strings() {
-                assert_eq!(context.get_string_by_id(idx), strings[idx]);
+                let string = context.get_string_by_id(idx);
+                assert!(string.is_some());
+                assert_eq!(string.unwrap(), strings[idx]);
             }
         }
 
@@ -738,6 +763,9 @@ mod tests {
 
             let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_id(0);
+
+            assert!(class.is_some());
+            let class = class.unwrap();
 
             assert_eq!(&class.class_name, "DexParserTest");
             assert_eq!(&class.super_class, "java.lang.Object");
@@ -796,6 +824,9 @@ mod tests {
 
             let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_id(0);
+
+            assert!(class.is_some());
+            let class = class.unwrap();
 
             assert_eq!(&class.class_name, "DexParserTest");
             assert_eq!(&class.super_class, "java.lang.Object");
