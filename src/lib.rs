@@ -956,8 +956,7 @@ mod tests {
         fn test_fields() {
             use std::collections::HashMap;
 
-            let fields = vec![
-                HashMap::from([
+            let fields = [HashMap::from([
                     ("name", "field1"),
                     ("flags", "2"),
                     ("type", "I")
@@ -966,8 +965,7 @@ mod tests {
                     ("name", "field2"),
                     ("flags", "2"),
                     ("type", "Ljava/lang/String;"),
-                ]),
-            ];
+                ])];
 
             let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_id(0);
@@ -984,7 +982,7 @@ mod tests {
             assert_eq!(class.static_fields_size, 0);
 
             let class_descriptor = String::from("LDexParserTest;");
-            let access_flags = vec![DvmAccessFlag::ACC_PUBLIC];
+            let access_flags = [DvmAccessFlag::ACC_PUBLIC];
 
             for (idx, field) in class.instance_fields.iter().enumerate() {
                 let access_flags = DvmAccessFlag::parse(
@@ -1012,8 +1010,7 @@ mod tests {
         fn test_methods() {
             use std::collections::HashMap;
 
-            let methods = vec![
-                HashMap::from([
+            let methods = [HashMap::from([
                     ("dalvik_name", "LDexParserTest;-><init>()V"),
                     ("flags", "1"),
                 ]),
@@ -1028,8 +1025,7 @@ mod tests {
                 HashMap::from([
                     ("dalvik_name", "LDexParserTest;->printMessage()V"),
                     ("flags", "2"),
-                ]),
-            ];
+                ])];
 
             let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_id(0);
@@ -1046,7 +1042,7 @@ mod tests {
             assert_eq!(class.virtual_methods_size, 0);
 
             let class_descriptor = String::from("LDexParserTest;");
-            let access_flags = vec![DvmAccessFlag::ACC_PUBLIC];
+            let access_flags = [DvmAccessFlag::ACC_PUBLIC];
 
             for (idx, method) in class.direct_methods.iter().enumerate() {
                 let access_flags = DvmAccessFlag::parse(
@@ -1215,13 +1211,13 @@ mod tests {
             context.disassemble_dex();
 
             for (method, code) in methods.iter() {
-                let dvm_method = context.get_disassembled_method(&method);
+                let dvm_method = context.get_disassembled_method(method);
                 assert!(dvm_method.is_some());
 
                 let dvm_method = dvm_method.unwrap();
                 assert_eq!(dvm_method.method_string
                                      .split("\n")
-                                     .zip(*&code)
+                                     .zip(code)
                                      .filter(|&(a, b)| a != *b)
                                      .map(|x| println!("{x:?}"))
                                      .count(),
