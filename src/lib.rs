@@ -726,7 +726,6 @@ mod tests {
             ];
 
             let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
-            println!("{context:#?}");
 
             assert_eq!(context.get_number_of_strings(), 33);
 
@@ -764,6 +763,7 @@ mod tests {
             assert_eq!(&class.super_class, "java.lang.Object");
             assert_eq!(&class.source_file, "DexParserTest.java");
 
+            assert_eq!(class.access_flags, vec![DvmAccessFlag::ACC_PUBLIC]);
             assert_eq!(class.instance_fields_size, 2);
             assert_eq!(class.static_fields_size, 0);
 
@@ -825,6 +825,7 @@ mod tests {
             assert_eq!(&class.super_class, "java.lang.Object");
             assert_eq!(&class.source_file, "DexParserTest.java");
 
+            assert_eq!(class.access_flags, vec![DvmAccessFlag::ACC_PUBLIC]);
             assert_eq!(class.direct_methods_size, 4);
             assert_eq!(class.virtual_methods_size, 0);
 
@@ -841,6 +842,18 @@ mod tests {
                 assert_eq!(method.dalvik_name, methods[idx]["dalvik_name"]);
                 assert_eq!(method.access_flags, access_flags);
             }
+        }
+
+        #[test]
+        fn test_get_class_by_name() {
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let class = context.get_class_by_name("DexParserTest");
+
+            assert!(class.is_some());
+            assert_eq!(class.as_ref().unwrap().class_name, "DexParserTest");
+            assert_eq!(class.as_ref().unwrap().super_class, "java.lang.Object");
+            assert_eq!(class.as_ref().unwrap().source_file, "DexParserTest.java");
+            assert_eq!(class.as_ref().unwrap().access_flags, vec![DvmAccessFlag::ACC_PUBLIC]);
         }
     }
 }
