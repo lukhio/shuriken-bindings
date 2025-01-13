@@ -12,9 +12,6 @@ use std::path::Path;
 use std::ffi::{ CStr, CString };
 use std::slice::from_raw_parts;
 
-
-use shuriken::hdvmclass_t;
-
 use crate::dvm_access_flags::{ DvmAccessFlag, DvmAccessFlagType };
 
 mod shuriken {
@@ -408,7 +405,7 @@ pub struct DvmClassAnalysis(shuriken::hdvmclassanalysis_t);
 impl Drop for DexContext {
     fn drop(&mut self) {
         unsafe {
-                shuriken::destroy_dex(self.0);
+            shuriken::destroy_dex(self.0);
         }
     }
 }
@@ -422,25 +419,21 @@ impl DexContext {
         let c_str = CString::new(filepath.to_path_buf().into_os_string().into_string().unwrap()).unwrap();
         let c_world = c_str.as_ptr();
         unsafe {
-            DexContext {
-                ptr: shuriken::parse_dex(c_world),
-                classes: Vec::new(),
-                methods: Vec::new(),
-            }
+            DexContext(shuriken::parse_dex(c_world))
         }
     }
 
     /// Get the number of strings in the DEX file
     pub fn get_number_of_strings(&self) -> usize {
         unsafe {
-            shuriken::get_number_of_strings(self.ptr)
+            shuriken::get_number_of_strings(self.0)
         }
     }
 
     /// Get a string given its ID
     pub fn get_string_by_id(&self, string_id: usize) -> Option<String> {
         unsafe {
-            let c_string = shuriken::get_string_by_id(self.ptr, string_id);
+            let c_string = shuriken::get_string_by_id(self.0, string_id);
             if let Ok(string) = CStr::from_ptr(c_string).to_str() {
                 Some(string.to_owned())
             } else {
@@ -452,13 +445,13 @@ impl DexContext {
     /// Get the number of classes in the DEX file
     pub fn get_number_of_classes(&self) -> usize {
         unsafe {
-            shuriken::get_number_of_classes(self.ptr).into()
+            shuriken::get_number_of_classes(self.0).into()
         }
     }
 
     /// Get a class structure given an ID
     pub fn get_class_by_id(&self, id: u16) -> Option<DvmClass> {
-        let dvm_class_ptr = unsafe { shuriken::get_class_by_id(self.ptr, id) };
+        let dvm_class_ptr = unsafe { shuriken::get_class_by_id(self.0, id) };
 
         if ! dvm_class_ptr.is_null() {
             Some(DvmClass::from_hdvmclass_t(unsafe { *dvm_class_ptr }))
@@ -472,7 +465,7 @@ impl DexContext {
         let c_str = CString::new(class_name)
             .expect("CString::new failed");
 
-        let dvm_class = unsafe { shuriken::get_class_by_name(self.ptr, c_str.as_ptr()) };
+        let dvm_class = unsafe { shuriken::get_class_by_name(self.0, c_str.as_ptr()) };
         if ! dvm_class.is_null() {
             Some(DvmClass::from_hdvmclass_t(unsafe { *dvm_class }))
         } else {
