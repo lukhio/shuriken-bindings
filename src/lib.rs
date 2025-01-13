@@ -46,7 +46,7 @@ pub enum DexTypes {
 /// Type alias for Shuriken's `hfundamental_e`
 ///
 /// Enum with the basic DEX types
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DexBasicTypes {
     Boolean,
     Byte,
@@ -132,8 +132,8 @@ impl DvmField {
         Self {
             class_name,
             name,
-            field_type: DexTypes::Fundamental,
-            fundamental_value: DexBasicTypes::Boolean,
+            field_type,
+            fundamental_value,
             type_value,
             access_flags
         }
@@ -670,6 +670,60 @@ mod tests {
             let count = context.get_number_of_strings();
 
             assert_eq!(count, *counts.get(&path.to_str().unwrap()).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_parse_fields() {
+        use std::collections::HashMap;
+
+        let fields = vec![
+            HashMap::from([
+                ("name", "field1"),
+                ("flags", "2"),
+                ("type", "I")
+            ]),
+            HashMap::from([
+                ("name", "field2"),
+                ("flags", "2"),
+                ("type", "Ljava/lang/String;"),
+            ]),
+        ];
+
+        let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+        let class = context.get_class_by_id(0);
+
+        assert_eq!(&class.class_name, "DexParserTest");
+        assert_eq!(&class.super_class, "java.lang.Object");
+        assert_eq!(&class.source_file, "DexParserTest.java");
+
+        assert_eq!(class.direct_methods_size, 4);
+        assert_eq!(class.virtual_methods_size, 0);
+        assert_eq!(class.instance_fields_size, 2);
+        assert_eq!(class.static_fields_size, 0);
+
+        let class_descriptor = String::from("LDexParserTest;");
+        let access_flags = vec![DvmAccessFlag::ACC_PUBLIC];
+
+        for (idx, field) in class.instance_fields.iter().enumerate() {
+            let access_flags = DvmAccessFlag::parse(
+                fields[idx]["flags"].parse::<u32>().unwrap(),
+                DvmAccessFlagType::Field
+            );
+
+            assert_eq!(field.class_name, class_descriptor);
+            assert_eq!(field.name, fields[idx]["name"]);
+            assert_eq!(field.access_flags, access_flags);
+
+            if fields[idx]["type"].starts_with("L") {
+                assert_eq!(field.field_type, DexTypes::Class);
+                assert_eq!(field.fundamental_value, DexBasicTypes::FundamentalNone);
+                assert_eq!(field.type_value, "Ljava/lang/String;");
+            } else {
+                assert_eq!(field.field_type, DexTypes::Fundamental);
+                assert_eq!(field.fundamental_value, DexBasicTypes::Int);
+                assert_eq!(field.type_value, "I");
+            }
         }
     }
 }
