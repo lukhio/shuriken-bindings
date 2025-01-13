@@ -142,7 +142,7 @@ impl DvmField {
 /// Type alias for Shuriken's `hdvmmethod_t`
 ///
 /// Structure which keeps information from a method this can be accessed from the class data
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmMethod {
     class_name: String,
     method_name: String,
@@ -310,12 +310,112 @@ impl DvmClass {
 /// Type alias for Shuriken's `dexinsttype_e`
 ///
 /// Instruction types from the Dalvik Virtual Machine
-pub struct DexInstType(shuriken::dexinsttype_e);
+#[derive(Debug)]
+pub enum DexInstType {
+    DexInstruction00x,
+    DexInstruction10x,
+    DexInstruction12x,
+    DexInstruction11n,
+    DexInstruction11x,
+    DexInstruction10t,
+    DexInstruction20t,
+    DexInstruction20bc,
+    DexInstruction22x,
+    DexInstruction21t,
+    DexInstruction21s,
+    DexInstruction21h,
+    DexInstruction21c,
+    DexInstruction23x,
+    DexInstruction22b,
+    DexInstruction22t,
+    DexInstruction22s,
+    DexInstruction22c,
+    DexInstruction22cs,
+    DexInstruction30t,
+    DexInstruction32x,
+    DexInstruction31i,
+    DexInstruction31t,
+    DexInstruction31c,
+    DexInstruction35c,
+    DexInstruction3rc,
+    DexInstruction45cc,
+    DexInstruction4rcc,
+    DexInstruction51l,
+    DexPackedSwitch,
+    DexSparseSwitch,
+    DexFillArrayData,
+    DexDalvikIncorrect,
+    DexNoneOp     // = 99,
+}
 
 /// Type alias for Shuriken's `hdvminstruction_t`
 ///
 /// Structure for an instruction in the dalvik virtual machine
-pub struct DvmInstruction(shuriken::hdvminstruction_t);
+#[derive(Debug)]
+pub struct DvmInstruction {
+    instruction_type: DexInstType,
+    instruction_length: usize,
+    address: u64,
+    // TODO: replace with a enum of all opcodes maybe?
+    op: u32,
+    disassembly: String
+}
+
+impl DvmInstruction {
+    fn from_ins(ins: shuriken::hdvminstruction_t) -> Self {
+        let instruction_type = match ins.instruction_type {
+            0  => DexInstType::DexInstruction00x,
+            1  => DexInstType::DexInstruction10x,
+            2  => DexInstType::DexInstruction12x,
+            3  => DexInstType::DexInstruction11n,
+            4  => DexInstType::DexInstruction11x,
+            5  => DexInstType::DexInstruction10t,
+            6  => DexInstType::DexInstruction20t,
+            7  => DexInstType::DexInstruction20bc,
+            8  => DexInstType::DexInstruction22x,
+            9  => DexInstType::DexInstruction21t,
+            10 => DexInstType::DexInstruction21s,
+            11 => DexInstType::DexInstruction21h,
+            12 => DexInstType::DexInstruction21c,
+            13 => DexInstType::DexInstruction23x,
+            14 => DexInstType::DexInstruction22b,
+            15 => DexInstType::DexInstruction22t,
+            16 => DexInstType::DexInstruction22s,
+            17 => DexInstType::DexInstruction22c,
+            18 => DexInstType::DexInstruction22cs,
+            19 => DexInstType::DexInstruction30t,
+            20 => DexInstType::DexInstruction32x,
+            21 => DexInstType::DexInstruction31i,
+            22 => DexInstType::DexInstruction31t,
+            23 => DexInstType::DexInstruction31c,
+            24 => DexInstType::DexInstruction35c,
+            25 => DexInstType::DexInstruction3rc,
+            26 => DexInstType::DexInstruction45cc,
+            27 => DexInstType::DexInstruction4rcc,
+            28 => DexInstType::DexInstruction51l,
+            29 => DexInstType::DexPackedSwitch,
+            30 => DexInstType::DexSparseSwitch,
+            31 => DexInstType::DexFillArrayData,
+            99 => DexInstType::DexNoneOp,
+            _  => DexInstType::DexDalvikIncorrect,
+        };
+            
+        let disassembly = unsafe {
+            CStr::from_ptr(ins.disassembly)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        DvmInstruction {
+            instruction_type,
+            instruction_length: ins.instruction_length as usize,
+            address: ins.address,
+            op: ins.op,
+            disassembly
+        }
+    }
+}
 
 /// Type alias for Shuriken's `dvmhandler_data_t`
 ///
