@@ -9,7 +9,7 @@
 //! # Example
 //!
 //! ```
-//! use dex_parser::access_flags::{ DvmAccessFlag, DvmAccessFlagType };
+//! use shuriken_bindings::dvm_access_flags::{ DvmAccessFlag, DvmAccessFlagType };
 //!
 //! let flags = DvmAccessFlag::parse(0x0001_0009, DvmAccessFlagType::Method);
 //!
