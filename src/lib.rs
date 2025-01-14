@@ -11,6 +11,7 @@ pub mod dvm_access_flags;
 use std::path::Path;
 use std::ffi::{ CStr, CString };
 use std::slice::from_raw_parts;
+use std::collections::HashMap;
 
 use crate::dvm_access_flags::{ DvmAccessFlag, DvmAccessFlagType };
 
@@ -23,8 +24,8 @@ mod shuriken {
 #[derive(Debug)]
 pub struct DexContext {
     ptr: shuriken::hDexContext,
-    class_ptrs: Vec<*mut shuriken::hdvmclass_t>,
-    method_ptrs: Vec<*mut shuriken::hdvmmethod_t>,
+    class_ptrs: HashMap<String, *mut shuriken::hdvmclass_t>,
+    method_ptrs: HashMap<String, *mut shuriken::hdvmmethod_t>,
 }
 
 /// Type alias for Shuriken's `hApkContext`
@@ -612,25 +613,18 @@ impl Drop for DexContext {
 impl DexContext {
     /// Main method from the DEX core API
     ///
-    /// Parse a DEX file and return a DEX context. We also pre-populate the cache of raw pointers
-    /// to `hdvmclass_t` objects. There is no metho to get all methods from a class though so we
-    /// populate this cache as we retrieve the objects.
+    /// Parse a DEX file and return a DEX context.
     /// TODO: make sure we correctly handle non-ascii paths
     pub fn parse_dex(filepath: &Path) -> Self {
         let c_str = CString::new(filepath.to_path_buf().into_os_string().into_string().unwrap()).unwrap();
         let c_world = c_str.as_ptr();
 
         let ptr = unsafe { shuriken::parse_dex(c_world) };
-        let class_ptrs = unsafe {
-            (0..shuriken::get_number_of_classes(ptr))
-                .map(|idx| shuriken::get_class_by_id(ptr, idx))
-                .collect()
-        };
 
         Self {
             ptr,
-            class_ptrs,
-            method_ptrs: Vec::new()
+            class_ptrs: HashMap::new(),
+            method_ptrs: HashMap::new()
         }
     }
 
@@ -672,13 +666,15 @@ impl DexContext {
     }
 
     /// Get a class structure given a class name
-    pub fn get_class_by_name(&self, class_name: &str) -> Option<DvmClass> {
+    pub fn get_class_by_name(&mut self, class_name: &str) -> Option<DvmClass> {
         let c_str = CString::new(class_name)
             .expect("CString::new failed");
 
-        let dvm_class = unsafe { shuriken::get_class_by_name(self.ptr, c_str.as_ptr()) };
-        if ! dvm_class.is_null() {
-            Some(DvmClass::from_hdvmclass_t(unsafe { *dvm_class }))
+        let class_ptr = unsafe { shuriken::get_class_by_name(self.ptr, c_str.as_ptr()) };
+        if ! class_ptr.is_null() {
+            let dvm_class = DvmClass::from_hdvmclass_t(unsafe { *class_ptr });
+            self.class_ptrs.insert(dvm_class.class_name.clone(), class_ptr);
+            Some(dvm_class)
         } else {
             None
         }
@@ -692,7 +688,7 @@ impl DexContext {
         let method_ptr = unsafe { shuriken::get_method_by_name(self.ptr, c_str.as_ptr()) };
         if ! method_ptr.is_null() {
             let dvm_method = unsafe { DvmMethod::from_hdvmmethod_t(*method_ptr) };
-            self.method_ptrs.push(method_ptr);
+            self.method_ptrs.insert(dvm_method.method_name.clone(), method_ptr);
             Some(dvm_method)
         } else {
             None
@@ -1077,7 +1073,7 @@ mod tests {
 
         #[test]
         fn test_get_class_by_name() {
-            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_name("DexParserTest");
 
             assert!(class.is_some());
