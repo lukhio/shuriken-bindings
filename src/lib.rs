@@ -669,11 +669,13 @@ impl DexContext {
     }
 
     /// Get a class structure given an ID
-    pub fn get_class_by_id(&self, id: u16) -> Option<DvmClass> {
+    pub fn get_class_by_id(&mut self, id: u16) -> Option<DvmClass> {
         let dvm_class_ptr = unsafe { shuriken::get_class_by_id(self.ptr, id) };
 
         if ! dvm_class_ptr.is_null() {
-            Some(DvmClass::from_hdvmclass_t(unsafe { *dvm_class_ptr }))
+            let dvm_class = DvmClass::from_hdvmclass_t(unsafe { *dvm_class_ptr });
+            self.class_ptrs.insert(dvm_class.class_name.clone(), dvm_class_ptr);
+            Some(dvm_class)
         } else {
             None
         }
