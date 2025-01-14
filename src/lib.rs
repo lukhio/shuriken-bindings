@@ -711,7 +711,6 @@ impl DexContext {
         }
     }
 
-
     // --------------------------- Disassembler API ---------------------------
 
     /// Disassemble a DEX file and generate an internal DexDisassembler
@@ -745,17 +744,41 @@ impl DexContext {
     /// Optionally this function can create the cross-refs. In that case the analysis will take longer.
     /// To obtain the analysis, you must also call [`analyze_classes`](fn.analyze_classes.html)
     pub fn create_dex_analysis(&self, create_xrefs: bool) {
-        todo!();
+        let xrefs = if create_xrefs {
+            0
+        } else {
+            1
+        };
+
+        unsafe {
+            shuriken::create_dex_analysis(self.ptr, xrefs)
+        }
     }
 
     /// Analyze the classes, add fields and methods into the classes, optionally create the xrefs
     pub fn analyze_classes(&self) {
-        todo!();
+        unsafe {
+            shuriken::analyze_classes(self.ptr)
+        }
     }
 
     /// Obtain a `DvmClassAnalysis` given a `DvmClass`
-    pub fn get_analyzed_class_by_hdvmclass(&self, class: &DvmClass ) -> &DvmClassAnalysis {
-        todo!();
+    pub fn get_analyzed_class_by_hdvmclass(&self, class: &DvmClass) -> Option<&DvmClassAnalysis> {
+        let class_ptr = self.class_ptrs
+            .get(&class.class_name)
+            .expect("Cannot find raw pointer for class");
+
+        println!("class_ptr {:#?}", *class_ptr);
+
+        let analysis = unsafe {
+            shuriken::get_analyzed_class_by_hdvmclass(self.ptr, *class_ptr)
+        };
+
+        unsafe {
+            println!("analysis {:#?}", *analysis);
+        }
+
+        None
     }
 
     /// Obtain a `DvmClassAnalysis` given a class name
@@ -998,7 +1021,7 @@ mod tests {
                     ("type", "Ljava/lang/String;"),
                 ])];
 
-            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_id(0);
 
             assert!(class.is_some());
@@ -1058,7 +1081,7 @@ mod tests {
                     ("flags", "2"),
                 ])];
 
-            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_id(0);
 
             assert!(class.is_some());
@@ -1255,6 +1278,29 @@ mod tests {
                     0
                 );
             }
+        }
+
+        #[test]
+        fn test_get_analyzed_class_by_hdvmclass() {
+            println!("1");
+            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            context.disassemble_dex();
+            let class = context.get_class_by_id(0);
+            assert!(class.is_some());
+            println!("{class:#?}");
+            println!("{context:#?}");
+
+            println!("2");
+            context.create_dex_analysis(false);
+            println!("3");
+            context.analyze_classes();
+            println!("4");
+
+            // Check that we get nothing if we have not run `DexContext::disassemble_dex()`
+            let dvm_method = context.get_analyzed_class_by_hdvmclass(&class.unwrap());
+            println!("{dvm_method:#?}");
+
+            assert!(false);
         }
     }
 }
