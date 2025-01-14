@@ -745,9 +745,9 @@ impl DexContext {
     /// To obtain the analysis, you must also call [`analyze_classes`](fn.analyze_classes.html)
     pub fn create_dex_analysis(&self, create_xrefs: bool) {
         let xrefs = if create_xrefs {
-            0
-        } else {
             1
+        } else {
+            0
         };
 
         unsafe {
