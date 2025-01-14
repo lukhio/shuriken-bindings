@@ -29,6 +29,7 @@ pub struct DexContext {
 }
 
 /// Type alias for Shuriken's `hApkContext`
+#[derive(Debug)]
 pub struct ApkContext(shuriken::hApkContext);
 
 // --------------------------- Parser Data ---------------------------
@@ -537,67 +538,80 @@ impl DvmDisassembledMethod {
 /// Type alias for Shuriken's `ref_type`
 ///
 /// Enum that represents the possible reference types
+#[derive(Debug)]
 pub struct DvmRefType(shuriken::ref_type);
 
 /// Type alias for Shuriken's `hdvm_class_method_idx_t`
 ///
 /// Cross-ref that contains class, method and instruction address
+#[derive(Debug)]
 pub struct DvmClassMethodIdx(shuriken::hdvm_class_method_idx_t);
 
 /// Type alias for Shuriken's `hdvm_method_idx_t`
 ///
 ///  Cross-ref that contains a method and instruction address
+#[derive(Debug)]
 pub struct DvmMethodIdx(shuriken::hdvm_method_idx_t);
 
 /// Type alias for Shuriken's `hdvm_class_field_idx_t`
 ///
 ///  Cross-ref that contains class, field and instruction address
+#[derive(Debug)]
 pub struct DvmClassFieldIdx(shuriken::hdvm_class_field_idx_t);
 
 /// Type alias for Shuriken's `hdvm_class_idx_t`
 ///
 /// Cross-ref that contains class and instruction address
+#[derive(Debug)]
 pub struct DvmClassIdx(shuriken::hdvm_class_idx_t);
 
 /// Type alias for Shuriken's `hdvm_reftype_method_idx_t`
 ///
 /// Structure that contains a type of reference, a method analysis where reference is and the index
 /// in the method where the reference to a class is
+#[derive(Debug)]
 pub struct DvmRefTypeMethodIdx(shuriken::hdvm_reftype_method_idx_t);
 
 /// Type alias for Shuriken's `hdvm_classxref_t`
 ///
 /// Class cross-ref
+#[derive(Debug)]
 pub struct DvmClassXRef(shuriken::hdvm_classxref_t);
 
 /// Type alias for Shuriken's `hdvmbasicblock_t`
 ///
 /// Structure that stores information of a basic block
+#[derive(Debug)]
 pub struct DvmBasicBlock(shuriken::hdvmbasicblock_t);
 
 /// Type alias for Shuriken's `basic_blocks_t`
 ///
 /// Structure to keep all the basic blocks
+#[derive(Debug)]
 pub struct BasicBlocks(shuriken::basic_blocks_t);
 
 /// Type alias for Shuriken's `hdvmfieldanalysis_t`
 ///
 /// Field analysis structure
+#[derive(Debug)]
 pub struct DvmFieldAnalysis(shuriken::hdvmfieldanalysis_t);
 
 /// Type alias for Shuriken's `hdvmstringanalysis_t`
 ///
 /// Structure to keep information about the string analysis [UNUSED FOR NOW]
+#[derive(Debug)]
 pub struct DvmStringAnalysis(shuriken::hdvmstringanalysis_t);
 
 /// Type alias for Shuriken's `hdvmmethodanalysis_t`
 ///
 /// Structure to keep information about the method analysis
+#[derive(Debug)]
 pub struct DvmMethodAnalysis(shuriken::hdvmmethodanalysis_t);
 
 /// Type alias for Shuriken's `hdvmclassanalysis_t`
 ///
 /// Structure to keep information about the class analysis
+#[derive(Debug)]
 pub struct DvmClassAnalysis(shuriken::hdvmclassanalysis_t);
 
 // --------------------------- Parser API ---------------------------
