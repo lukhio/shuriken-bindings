@@ -3,8 +3,13 @@
 //! Helper functions to manipulate access flags
 //!
 //! Access flags are stored as an unsigned 32 bits integer and can be used for classes, fields, or
-//! methods. In this module we define structs to represent these flags and help methods to parse
-//! and print them.
+//! methods. See the official [`documentation`] for the implementation details and the possible
+//! bitfield values.
+//! This module defines structs to represent these flags and helper methods to parse and print
+//! them.
+//!
+//! Note: Shuriken uses some `u16` in some structs to represent the access flags. We use 32 bits
+//! unsigned integer instead to reflect what the Android OS uses.
 //!
 //! # Example
 //!
@@ -17,6 +22,8 @@
 //!                        DvmAccessFlag::ACC_STATIC,
 //!                        DvmAccessFlag::ACC_CONSTRUCTOR]);
 //! ```
+//!
+//! [`documentation`]: https://source.android.com/docs/core/runtime/dex-format#access-flags
 
 use std::fmt;
 
