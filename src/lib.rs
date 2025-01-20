@@ -763,6 +763,8 @@ impl DexContext {
     }
 
     /// Obtain a `DvmClassAnalysis` given a `DvmClass`
+    ///
+    /// XXX continue here
     pub fn get_analyzed_class_by_hdvmclass(&self, class: &DvmClass) -> Option<&DvmClassAnalysis> {
         let class_ptr = self.class_ptrs
             .get(&class.class_name)
@@ -775,10 +777,13 @@ impl DexContext {
         };
 
         unsafe {
-            println!("analysis {:#?}", *analysis);
+            let analysis = *analysis;
+            println!("analysis {:#?}", analysis);
+            let xrefto = from_raw_parts(analysis.xrefto, analysis.n_of_xrefto);
+            println!("class method idx: {:#?}", xrefto);
         }
 
-        None
+        todo!()
     }
 
     /// Obtain a `DvmClassAnalysis` given a class name
@@ -1278,29 +1283,6 @@ mod tests {
                     0
                 );
             }
-        }
-
-        #[test]
-        fn test_get_analyzed_class_by_hdvmclass() {
-            println!("1");
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
-            context.disassemble_dex();
-            let class = context.get_class_by_id(0);
-            assert!(class.is_some());
-            println!("{class:#?}");
-            println!("{context:#?}");
-
-            println!("2");
-            context.create_dex_analysis(false);
-            println!("3");
-            context.analyze_classes();
-            println!("4");
-
-            // Check that we get nothing if we have not run `DexContext::disassemble_dex()`
-            let dvm_method = context.get_analyzed_class_by_hdvmclass(&class.unwrap());
-            println!("{dvm_method:#?}");
-
-            assert!(false);
         }
     }
 }
