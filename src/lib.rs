@@ -63,7 +63,7 @@ pub enum DexBasicTypes {
     Long,
     Short,
     Void,
-    FundamentalNone
+    FundamentalNone = 99
 }
 
 /// Type alias for Shuriken's `hdvmfield_t`
@@ -352,7 +352,7 @@ pub enum DexInstType {
     DexSparseSwitch,
     DexFillArrayData,
     DexDalvikIncorrect,
-    DexNoneOp     // = 99,
+    DexNoneOp = 99,
 }
 
 /// Type alias for Shuriken's `hdvminstruction_t`
