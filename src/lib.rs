@@ -538,8 +538,34 @@ impl DvmDisassembledMethod {
 /// Type alias for Shuriken's `ref_type`
 ///
 /// Enum that represents the possible reference types
-#[derive(Debug)]
-pub struct DvmRefType(shuriken::ref_type);
+#[derive(Debug, PartialEq)]
+pub enum DvmRefType {
+    /// New instance of a class
+    REF_NEW_INSTANCE = 0x22,
+    /// Class is used somewhere
+    REF_CLASS_USAGE = 0x1c,
+    /// Call of a method from a class
+    INVOKE_VIRTUAL = 0x6e,
+    /// Call of constructor of super class
+    INVOKE_SUPER = 0x6f,
+    /// Call a method from a class
+    INVOKE_DIRECT = 0x70,
+    /// Call a static method from a class
+    INVOKE_STATIC = 0x71,
+    /// Call an interface method
+    INVOKE_INTERFACE = 0x72,
+    /// Call of a method from a class with arguments range
+    INVOKE_VIRTUAL_RANGE = 0x74,
+    /// Call of constructor of super class with arguments range
+    INVOKE_SUPER_RANGE = 0x75,
+    /// Call a method from a class with arguments range
+    INVOKE_DIRECT_RANGE = 0x76,
+    /// Call a static method from a class with arguments range
+    INVOKE_STATIC_RANGE = 0x77,
+    /// Call an interface method with arguments range
+    INVOKE_INTERFACE_RANGE = 0x78
+}
+
 
 /// Type alias for Shuriken's `hdvm_class_method_idx_t`
 ///
