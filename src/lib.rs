@@ -579,13 +579,25 @@ pub struct DvmClassMethodIdx {
 }
 
 impl DvmClassMethodIdx {
-    // TODO
     pub fn from_ptr(ptr: shuriken::hdvm_class_method_idx_t) -> Self {
+        let class = unsafe {
+            CStr::from_ptr((*ptr.cls).name_)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let method = unsafe {
+            CStr::from_ptr((*ptr.method).full_name)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
 
         Self {
-            class: String::new(),
-            method: String::new(),
-            idx: 0
+            class,
+            method,
+            idx: ptr.idx as u64
         }
     }
 }
@@ -600,13 +612,71 @@ pub struct DvmMethodIdx(shuriken::hdvm_method_idx_t);
 ///
 ///  Cross-ref that contains class, field and instruction address
 #[derive(Debug)]
-pub struct DvmClassFieldIdx(shuriken::hdvm_class_field_idx_t);
+pub struct DvmClassFieldIdx {
+    /// Class of the XRef
+    class: String,
+    /// Field of the XRef
+    field: String,
+    /// Idx
+    idx: u64
+}
+
+impl DvmClassFieldIdx {
+    pub fn from_ptr(ptr: shuriken::hdvm_class_field_idx_t) -> Self {
+        // println!("{:?}", ptr);
+        // println!("{:?}", unsafe { (*ptr.cls).name_ });
+
+        let class = unsafe {
+            CStr::from_ptr((*ptr.cls).name_)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let field = unsafe {
+            CStr::from_ptr((*ptr.field).name)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        // println!("{class:?}");
+        // println!("{field:?}");
+
+        Self {
+            class,
+            field,
+            idx: ptr.idx as u64
+        }
+    }
+}
 
 /// Type alias for Shuriken's `hdvm_class_idx_t`
 ///
 /// Cross-ref that contains class and instruction address
 #[derive(Debug)]
-pub struct DvmClassIdx(shuriken::hdvm_class_idx_t);
+pub struct DvmClassIdx {
+    /// Class of the XRef
+    class: String,
+    /// Idx
+    idx: u64
+}
+
+impl DvmClassIdx {
+    pub fn from_ptr(ptr: shuriken::hdvm_class_idx_t) -> Self {
+        let class = unsafe {
+            CStr::from_ptr((*ptr.cls).name_)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        Self {
+            class,
+            idx: ptr.idx as u64
+        }
+    }
+}
 
 /// Type alias for Shuriken's `hdvm_reftype_method_idx_t`
 ///
@@ -657,6 +727,8 @@ impl DvmBasicBlock {
         // TODO: in the current test files the handler type contains an invalid
         // reference which leads to a segmentation fault. Need to open an issue
         // upstream to investigate if this is a bug in Shuriken or something else.
+        // Issue ref: https://github.com/Shuriken-Group/Shuriken-Analyzer/issues/153
+        //
         // let handler_type = unsafe {
         //     CStr::from_ptr(ptr.handler_type)
         //         .to_str()
@@ -789,7 +861,7 @@ pub struct DvmMethodAnalysis {
 }
 
 impl DvmMethodAnalysis {
-    // TODO
+    // TODO XXX
     fn from_ptr(ptr: shuriken::hdvmmethodanalysis_t) -> Self {
         println!("ptr: {ptr:#?}");
 
@@ -832,6 +904,48 @@ impl DvmMethodAnalysis {
             DvmBasicBlocks::from_ptr(*ptr.basic_blocks)
         };
 
+        let xrefread = unsafe {
+            from_raw_parts(ptr.xrefread, ptr.n_of_xrefread)
+                .iter()
+                .map(|xref| DvmClassFieldIdx::from_ptr(*xref))
+                .collect::<Vec<DvmClassFieldIdx>>()
+        };
+
+        let xrefwrite = unsafe {
+            from_raw_parts(ptr.xrefwrite, ptr.n_of_xrefwrite)
+                .iter()
+                .map(|xref| DvmClassFieldIdx::from_ptr(*xref))
+                .collect::<Vec<DvmClassFieldIdx>>()
+        };
+
+        let xrefto = unsafe {
+            from_raw_parts(ptr.xrefto, ptr.n_of_xrefto)
+                .iter()
+                .map(|xref| DvmClassMethodIdx::from_ptr(*xref))
+                .collect::<Vec<DvmClassMethodIdx>>()
+        };
+
+        let xreffrom = unsafe {
+            from_raw_parts(ptr.xreffrom, ptr.n_of_xreffrom)
+                .iter()
+                .map(|xref| DvmClassMethodIdx::from_ptr(*xref))
+                .collect::<Vec<DvmClassMethodIdx>>()
+        };
+
+        let xrefnewinstance = unsafe {
+            from_raw_parts(ptr.xrefnewinstance, ptr.n_of_xrefnewinstance)
+                .iter()
+                .map(|xref| DvmClassIdx::from_ptr(*xref))
+                .collect::<Vec<DvmClassIdx>>()
+        };
+
+        let xrefconstclass = unsafe {
+            from_raw_parts(ptr.xrefconstclass, ptr.n_of_xrefconstclass)
+                .iter()
+                .map(|xref| DvmClassIdx::from_ptr(*xref))
+                .collect::<Vec<DvmClassIdx>>()
+        };
+
         Self {
             name,
             descriptor,
@@ -842,17 +956,17 @@ impl DvmMethodAnalysis {
             class_name,
             basic_blocks,
             n_of_xrefread: ptr.n_of_xrefread,
-            xrefread: Vec::new(),
+            xrefread,
             n_of_xrefwrite: ptr.n_of_xrefwrite,
-            xrefwrite: Vec::new(),
+            xrefwrite,
             n_of_xrefto: ptr.n_of_xrefto,
-            xrefto: Vec::new(),
+            xrefto,
             n_of_xreffrom: ptr.n_of_xreffrom,
-            xreffrom: Vec::new(),
+            xreffrom,
             n_of_xrefnewinstance: ptr.n_of_xrefnewinstance,
-            xrefnewinstance: Vec::new(),
+            xrefnewinstance,
             n_of_xrefconstclass: ptr.n_of_xrefconstclass,
-            xrefconstclass: Vec::new(),
+            xrefconstclass,
             method_string
         }
     }
@@ -1103,7 +1217,7 @@ impl DexContext {
             .get(&class.class_name)
             .expect("Cannot find raw pointer for class");
 
-        println!("class_ptr {:#?}", *class_ptr);
+        // println!("class_ptr {:#?}", *class_ptr);
 
         let analysis = unsafe {
             shuriken::get_analyzed_class_by_hdvmclass(self.ptr, *class_ptr)
@@ -1111,9 +1225,9 @@ impl DexContext {
 
         unsafe {
             let analysis = *analysis;
-            println!("analysis {:#?}", analysis);
+            // println!("analysis {:#?}", analysis);
             let xrefto = from_raw_parts(analysis.xrefto, analysis.n_of_xrefto);
-            println!("class method idx: {:#?}", xrefto);
+            // println!("class method idx: {:#?}", xrefto);
         }
 
         todo!()
@@ -1128,9 +1242,9 @@ impl DexContext {
             shuriken::get_analyzed_class(self.ptr, c_str.as_ptr())
         };
 
-        println!("____________________________________________");
-        unsafe { println!("ptr: {:#?}", *class_analysis_ptr) };
-        println!("____________________________________________");
+        // println!("____________________________________________");
+        // unsafe { println!("ptr: {:#?}", *class_analysis_ptr) };
+        // println!("____________________________________________");
 
         match class_analysis_ptr.is_null() {
             true => None,
@@ -1749,6 +1863,7 @@ mod tests {
                 println!("class name: {class_name:#?}");
                 let class_analysis = context.get_analyzed_class(&class_name);
                 println!("class_analysis: {class_analysis:#?}");
+                break;
 
                 /*
                 for jdx in 0..class_analysis.met
