@@ -210,7 +210,6 @@ impl DvmMethod {
 /// Type alias for Shuriken's `hdvmclass_t`
 ///
 /// Structure representing the classes in the DEX file
-/// TODO: build the arrays in this. Right now we just have pointers which is not convinient
 #[derive(Debug)]
 pub struct DvmClass {
     class_name: String,
@@ -566,12 +565,30 @@ pub enum DvmRefType {
     INVOKE_INTERFACE_RANGE = 0x78
 }
 
-
 /// Type alias for Shuriken's `hdvm_class_method_idx_t`
 ///
 /// Cross-ref that contains class, method and instruction address
 #[derive(Debug)]
-pub struct DvmClassMethodIdx(shuriken::hdvm_class_method_idx_t);
+pub struct DvmClassMethodIdx {
+    /// Class of the struct
+    class: String,
+    /// Method of the struct
+    method: String,
+    /// Index
+    idx: u64
+}
+
+impl DvmClassMethodIdx {
+    // TODO
+    pub fn from_ptr(ptr: shuriken::hdvm_class_method_idx_t) -> Self {
+
+        Self {
+            class: String::new(),
+            method: String::new(),
+            idx: 0
+        }
+    }
+}
 
 /// Type alias for Shuriken's `hdvm_method_idx_t`
 ///
@@ -608,19 +625,113 @@ pub struct DvmClassXRef(shuriken::hdvm_classxref_t);
 ///
 /// Structure that stores information of a basic block
 #[derive(Debug)]
-pub struct DvmBasicBlock(shuriken::hdvmbasicblock_t);
+pub struct DvmBasicBlock {
+    /// Number of instructions in the block
+    n_of_instructions: usize,
+    /// Pointer to the instructions in the block
+    instructions: Vec<DvmInstruction>,
+    /// Is it a try block?
+    try_block: bool,
+    /// Is it a catch block
+    catch_block: bool,
+    /// String value of the handler type
+    handler_type: String,
+    /// Name of the basic block
+    name: String,
+    /// Whole representation of a basic block in string format
+    block_string: String,
+}
+
+impl DvmBasicBlock {
+    pub fn from_ptr(ptr: shuriken::hdvmbasicblock_t) -> Self {
+        let try_block = ptr.try_block == 0;
+        let catch_block = ptr.catch_block == 0;
+
+        let instructions = unsafe {
+            from_raw_parts(ptr.instructions, ptr.n_of_instructions)
+                .iter()
+                .map(|ins| DvmInstruction::from_ins(*ins))
+                .collect::<Vec<DvmInstruction>>()
+        };
+
+        // TODO: in the current test files the handler type contains an invalid
+        // reference which leads to a segmentation fault. Need to open an issue
+        // upstream to investigate if this is a bug in Shuriken or something else.
+        // let handler_type = unsafe {
+        //     CStr::from_ptr(ptr.handler_type)
+        //         .to_str()
+        //         .expect("Error: string is not valid UTF-8")
+        //         .to_string()
+        // };
+        let handler_type = String::new();
+
+        let name = unsafe {
+            CStr::from_ptr(ptr.name)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let block_string = unsafe {
+            CStr::from_ptr(ptr.block_string)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        Self {
+            n_of_instructions: ptr.n_of_instructions,
+            instructions,
+            try_block,
+            catch_block,
+            handler_type,
+            name,
+            block_string
+        }
+    }
+}
 
 /// Type alias for Shuriken's `basic_blocks_t`
 ///
 /// Structure to keep all the basic blocks
 #[derive(Debug)]
-pub struct BasicBlocks(shuriken::basic_blocks_t);
+pub struct DvmBasicBlocks {
+    n_of_blocks: usize,
+    blocks: Vec<DvmBasicBlock>
+}
+
+impl DvmBasicBlocks {
+    pub fn from_ptr(ptr: shuriken::basic_blocks_t) -> Self {
+        let blocks = unsafe {
+            from_raw_parts(ptr.blocks, ptr.n_of_blocks)
+                .iter()
+                .map(|block| DvmBasicBlock::from_ptr(*block))
+                .collect::<Vec<DvmBasicBlock>>()
+        };
+
+        Self {
+            n_of_blocks: ptr.n_of_blocks,
+            blocks
+        }
+    }
+}
 
 /// Type alias for Shuriken's `hdvmfieldanalysis_t`
 ///
 /// Field analysis structure
 #[derive(Debug)]
-pub struct DvmFieldAnalysis(shuriken::hdvmfieldanalysis_t);
+pub struct DvmFieldAnalysis {
+    /// Full name of the FieldAnalysis
+    name: String,
+    /// Number of xrefread
+    n_of_xrefread: usize,
+    /// xrefread
+    xrefread: Vec<shuriken::hdvm_class_method_idx_t>,
+    /// Number of xrefwrite
+    n_of_xrefwrite: usize,
+    /// xrefwrite
+    xrefwrite: Vec<shuriken::hdvm_class_method_idx_t>,
+}
 
 /// Type alias for Shuriken's `hdvmstringanalysis_t`
 ///
@@ -632,13 +743,206 @@ pub struct DvmStringAnalysis(shuriken::hdvmstringanalysis_t);
 ///
 /// Structure to keep information about the method analysis
 #[derive(Debug)]
-pub struct DvmMethodAnalysis(shuriken::hdvmmethodanalysis_t);
+pub struct DvmMethodAnalysis {
+    /// Name of the method
+    name: String,
+    /// Descriptor of the method
+    descriptor: String,
+    /// Full name of the method including class name and descriptor
+    full_name: String,
+    /// Flag indicating if the method is external or not
+    external: bool,
+    /// Flag indicating if the method is an android API
+    is_android_api: bool,
+    /// Access flags
+    access_flags: Vec<DvmAccessFlag>,
+    /// Class name
+    class_name: String,
+    /// Basic blocks
+    basic_blocks: DvmBasicBlocks,
+    /// Number of field read in method
+    n_of_xrefread: usize,
+    /// Xrefs of field read
+    xrefread: Vec<DvmClassFieldIdx>,
+    /// Number of field write
+    n_of_xrefwrite: usize,
+    /// Xrefs of field write
+    xrefwrite: Vec<DvmClassFieldIdx>,
+    /// Number of xrefto
+    n_of_xrefto: usize,
+    /// Methods called from the current method
+    xrefto: Vec<DvmClassMethodIdx>,
+    /// Number of xreffrom
+    n_of_xreffrom: usize,
+    /// Methods that call the current method
+    xreffrom: Vec<DvmClassMethodIdx>,
+    /// Number of xrefnewinstance
+    n_of_xrefnewinstance: usize,
+    /// New instance of the method
+    xrefnewinstance: Vec<DvmClassIdx>,
+    /// Number of xrefconstclass
+    n_of_xrefconstclass: usize,
+    /// Use of const class
+    xrefconstclass: Vec<DvmClassIdx>,
+    /// Cache of method string
+    method_string: String,
+}
+
+impl DvmMethodAnalysis {
+    // TODO
+    fn from_ptr(ptr: shuriken::hdvmmethodanalysis_t) -> Self {
+        println!("ptr: {ptr:#?}");
+
+        let name = unsafe {
+            CStr::from_ptr(ptr.name)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let descriptor = unsafe {
+            CStr::from_ptr(ptr.descriptor)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let class_name = unsafe {
+            CStr::from_ptr(ptr.class_name)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let full_name = unsafe {
+            CStr::from_ptr(ptr.full_name)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let method_string = unsafe {
+            CStr::from_ptr(ptr.method_string)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let basic_blocks = unsafe {
+            DvmBasicBlocks::from_ptr(*ptr.basic_blocks)
+        };
+
+        Self {
+            name,
+            descriptor,
+            full_name,
+            external: ptr.external == 0,
+            is_android_api: ptr.is_android_api == 0,
+            access_flags: DvmAccessFlag::parse(ptr.access_flags, DvmAccessFlagType::Method),
+            class_name,
+            basic_blocks,
+            n_of_xrefread: ptr.n_of_xrefread,
+            xrefread: Vec::new(),
+            n_of_xrefwrite: ptr.n_of_xrefwrite,
+            xrefwrite: Vec::new(),
+            n_of_xrefto: ptr.n_of_xrefto,
+            xrefto: Vec::new(),
+            n_of_xreffrom: ptr.n_of_xreffrom,
+            xreffrom: Vec::new(),
+            n_of_xrefnewinstance: ptr.n_of_xrefnewinstance,
+            xrefnewinstance: Vec::new(),
+            n_of_xrefconstclass: ptr.n_of_xrefconstclass,
+            xrefconstclass: Vec::new(),
+            method_string
+        }
+    }
+}
 
 /// Type alias for Shuriken's `hdvmclassanalysis_t`
 ///
 /// Structure to keep information about the class analysis
 #[derive(Debug)]
-pub struct DvmClassAnalysis(shuriken::hdvmclassanalysis_t);
+pub struct DvmClassAnalysis {
+    /// is external class?
+    is_external: bool,
+    /// Name of the class it extends
+    extends: String,
+    /// name of the class
+    name: String,
+    /// number of methods
+    n_of_methods: usize,
+    /// pointer to an array of methods
+    /// 
+    /// NOTE: actually a vector of pointers, should refer to context cache instead maybe?
+    methods: Vec<shuriken::hdvmmethodanalysis_t>,
+    /// number of fields
+    n_of_fields: usize,
+    /// pointer to an array of fields
+    fields: Vec<shuriken::hdvmfieldanalysis_t>,
+    /// number of xrefnewinstance
+    n_of_xrefnewinstance: usize,
+    /// New instance of this class
+    xrefnewinstance: Vec<shuriken::hdvm_method_idx_t>,
+    /// number of const class
+    n_of_xrefconstclass: usize,
+    /// use of const class of this class
+    xrefconstclass: Vec<shuriken::hdvm_method_idx_t>,
+    /// number of xrefto
+    n_of_xrefto: usize,
+    /// Classes that this class calls
+    xrefto: Vec<shuriken::hdvm_classxref_t>,
+    /// number of xreffrom
+    n_of_xreffrom: usize,
+    /// Classes that call this class
+    xreffrom: Vec<shuriken::hdvm_classxref_t>,
+}
+
+impl DvmClassAnalysis {
+    pub fn from_ptr(ptr: shuriken::hdvmclassanalysis_t) -> Self {
+        let extends = unsafe {
+            CStr::from_ptr(ptr.extends_)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let name = unsafe {
+            CStr::from_ptr(ptr.name_)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let methods = unsafe {
+            from_raw_parts(ptr.methods, ptr.n_of_methods as usize).to_vec()
+        };
+
+        println!("+++++++++++++++++++++++++++++++++++++++++++++++++");
+        for method in methods.iter() {
+            let analysis = unsafe { DvmMethodAnalysis::from_ptr(*(*method)) };
+            println!("{analysis:#?}");
+        }
+        println!("+++++++++++++++++++++++++++++++++++++++++++++++++");
+
+        DvmClassAnalysis {
+            is_external: ptr.is_external == 0,
+            extends,
+            name,
+            n_of_methods: ptr.n_of_methods,
+            methods: Vec::new(),
+            n_of_fields: ptr.n_of_fields,
+            fields: Vec::new(),
+            n_of_xrefnewinstance: ptr.n_of_xrefnewinstance,
+            xrefnewinstance: Vec::new(),
+            n_of_xrefconstclass: ptr.n_of_xrefconstclass,
+            xrefconstclass: Vec::new(),
+            n_of_xrefto: ptr.n_of_xrefto,
+            xrefto: Vec::new(),
+            n_of_xreffrom: ptr.n_of_xreffrom,
+            xreffrom: Vec::new(),
+        }
+    }
+}
 
 // --------------------------- Parser API ---------------------------
 
@@ -664,7 +968,10 @@ impl DexContext {
         Self {
             ptr,
             class_ptrs: HashMap::new(),
-            method_ptrs: HashMap::new()
+            method_ptrs: HashMap::new(),
+            class_analyses: HashMap::new(),
+            method_analyses: HashMap::new(),
+            field_analyses: HashMap::new(),
         }
     }
 
@@ -813,8 +1120,25 @@ impl DexContext {
     }
 
     /// Obtain a `DvmClassAnalysis` given a class name
-    pub fn get_analyzed_class(&self, class_name: &str) -> &DvmClassAnalysis {
-        todo!();
+    pub fn get_analyzed_class(&self, class_name: &str) -> Option<DvmClassAnalysis> {
+        let c_str = CString::new(class_name)
+            .expect("CString::new failed");
+
+        let class_analysis_ptr = unsafe {
+            shuriken::get_analyzed_class(self.ptr, c_str.as_ptr())
+        };
+
+        println!("____________________________________________");
+        unsafe { println!("ptr: {:#?}", *class_analysis_ptr) };
+        println!("____________________________________________");
+
+        match class_analysis_ptr.is_null() {
+            true => None,
+            false => {
+                let dvm_class_analysis = unsafe { DvmClassAnalysis::from_ptr(*class_analysis_ptr) };
+                Some(dvm_class_analysis)
+            }
+        }
     }
 
     /// Obtain one DvmMethodAnalysis given its DvmMethod
@@ -1309,6 +1633,139 @@ mod tests {
                     0
                 );
             }
+        }
+
+        #[test]
+        fn test_dvm_basic_block() {
+            use std::collections::HashMap;
+
+            let methods = HashMap::from([
+                (
+                    String::from("LDexParserTest;-><init>()V"),
+                    vec![
+                        ".method constructor public LDexParserTest;-><init>()V",
+                        ".registers 2",
+                        "00000000 invoke-direct {v1}, Ljava/lang/Object;-><init>()V // method@5",
+                        "00000006 const/16 v0, 42",
+                        "0000000a iput v0, v1, DexParserTest->field1 int // field@0",
+                        "0000000e const-string v0, \"Hello, Dex Parser!\" // string@6",
+                        "00000012 iput-object v0, v1, DexParserTest->field2 java.lang.String // field@1",
+                        "00000016 return-void",
+                        ".end method"
+                    ]
+                ),
+                (
+                    String::from("LDexParserTest;->calculateSum(II)I"),
+                    vec![
+                        ".method private LDexParserTest;->calculateSum(II)I",
+                        ".registers 7",
+                        "00000000 add-int v0, v5, v6",
+                        "00000004 sget-object v1, java.lang.System->out java.io.PrintStream // field@2",
+                        "00000008 new-instance v2, Ljava/lang/StringBuilder; // type@5",
+                        "0000000c invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V // method@6",
+                        "00000012 const-string v3, \"Sum of \" // string@18",
+                        "00000016 invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@8",
+                        "0000001c move-result-object v2",
+                        "0000001e invoke-virtual {v2, v5}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder; // method@7",
+                        "00000024 move-result-object v5",
+                        "00000026 const-string v2, \" and \" // string@0",
+                        "0000002a invoke-virtual {v5, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@8",
+                        "00000030 move-result-object v5",
+                        "00000032 invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder; // method@7",
+                        "00000038 move-result-object v5",
+                        "0000003a const-string v6, \" is: \" // string@1",
+                        "0000003e invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@8",
+                        "00000044 move-result-object v5",
+                        "00000046 invoke-virtual {v5, v0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder; // method@7",
+                        "0000004c move-result-object v5",
+                        "0000004e invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String; // method@9",
+                        "00000054 move-result-object v5",
+                        "00000056 invoke-virtual {v1, v5}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V // method@4",
+                        "0000005c return v0",
+                        ".end method"
+                    ]
+                ),
+                (
+                    String::from("LDexParserTest;->main([Ljava/lang/String;)V"),
+                    vec![
+                        ".method public static LDexParserTest;->main([Ljava/lang/String;)V",
+                        ".registers 3",
+                        "00000000 new-instance v2, LDexParserTest; // type@1",
+                        "00000004 invoke-direct {v2}, LDexParserTest;-><init>()V // method@0",
+                        "0000000a invoke-direct {v2}, LDexParserTest;->printMessage()V // method@3",
+                        "00000010 const/16 v0, 10",
+                        "00000014 const/16 v1, 20",
+                        "00000018 invoke-direct {v2, v0, v1}, LDexParserTest;->calculateSum(II)I // method@1",
+                        "0000001e return-void",
+                        ".end method"
+                    ]
+                ),
+                (
+                    String::from("LDexParserTest;->printMessage()V"),
+                    vec![
+                        ".method private LDexParserTest;->printMessage()V",
+                        ".registers 4",
+                        "00000000 sget-object v0, java.lang.System->out java.io.PrintStream // field@2",
+                        "00000004 new-instance v1, Ljava/lang/StringBuilder; // type@5",
+                        "00000008 invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V // method@6",
+                        "0000000e const-string v2, \"Field 1: \" // string@4",
+                        "00000012 invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@8",
+                        "00000018 move-result-object v1",
+                        "0000001a iget v2, v3, DexParserTest->field1 int // field@0",
+                        "0000001e invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder; // method@7",
+                        "00000024 move-result-object v1",
+                        "00000026 invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String; // method@9",
+                        "0000002c move-result-object v1",
+                        "0000002e invoke-virtual {v0, v1}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V // method@4",
+                        "00000034 sget-object v0, java.lang.System->out java.io.PrintStream // field@2",
+                        "00000038 new-instance v1, Ljava/lang/StringBuilder; // type@5",
+                        "0000003c invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V // method@6",
+                        "00000042 const-string v2, \"Field 2: \" // string@5",
+                        "00000046 invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@8",
+                        "0000004c move-result-object v1",
+                        "0000004e iget-object v2, v3, DexParserTest->field2 java.lang.String // field@1",
+                        "00000052 invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@8",
+                        "00000058 move-result-object v1",
+                        "0000005a invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String; // method@9",
+                        "00000060 move-result-object v1",
+                        "00000062 invoke-virtual {v0, v1}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V // method@4",
+                        "00000068 sget-object v0, java.lang.System->out java.io.PrintStream // field@2",
+                        "0000006c const-string v1, \"This is a test message printed from DexParserTest class.\" // string@19",
+                        "00000070 invoke-virtual {v0, v1}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V // method@4",
+                        "00000076 return-void",
+                        ".end method"
+                    ]
+                )
+            ]);
+
+            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            context.disassemble_dex();
+            context.create_dex_analysis(true);
+            context.analyze_classes();
+
+            for idx in 0..context.get_number_of_classes() {
+                let class = context.get_class_by_id(idx as u16).unwrap();
+                let class_name = class.class_name;
+                println!("class name: {class_name:#?}");
+                let class_analysis = context.get_analyzed_class(&class_name);
+                println!("class_analysis: {class_analysis:#?}");
+
+                /*
+                for jdx in 0..class_analysis.met
+                    auto method_analysis = class_analysis->methods[j];
+                    printf("%s\n", method_analysis->full_name);
+                    auto basic_blocks = method_analysis->basic_blocks;
+                    for (uint32_t z = 0; z < basic_blocks->n_of_blocks; z++) {
+                        auto basic_block = basic_blocks->blocks[z];
+                        printf("%s\n", basic_block.block_string);
+                        [[maybe_unused]] auto data = methods[method_analysis->full_name][z].data();
+                        assert(strcmp(data, basic_block.block_string) == 0 && "Error, basic block disassembly is not correct");
+                    }
+                }
+                */
+            }
+
+            assert!(false);
         }
     }
 }
