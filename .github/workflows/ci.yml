@@ -57,7 +57,7 @@ jobs:
     - name: Build bindings
       run: cargo build --verbose
     - name: Run tests
-      run: RUSTFLAGS="-C instrument-coverage" cargo test --tests --verbose
+      run: RUSTFLAGS="-C instrument-coverage" LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/" cargo test --tests --verbose
     - name: "`cargo-llvm-cov` ~ install"
       uses: taiki-e/install-action@cargo-llvm-cov
     - name: Generate coverage data
