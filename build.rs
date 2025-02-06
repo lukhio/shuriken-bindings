@@ -1,14 +1,12 @@
 use std::env;
 use std::path::PathBuf;
 
-const BASE_FOLDER: &str = "/home/jgamba/dev/build/Shuriken-Analyzer/build/shuriken/";
-
 fn main() {
     // Tell cargo to look for shared libraries in the specified directory
-    println!("cargo:rustc-link-search={}", BASE_FOLDER);
+    println!("cargo:rustc-link-search={}", env::var("BASE_FOLDER").unwrap().as_str());
 
     // Tell cargo where to look for the shared object when running the program
-    println!("cargo:rustc-env=LD_LIBRARY_PATH={}", BASE_FOLDER);
+    println!("cargo:rustc-env=LD_LIBRARY_PATH={}", env::var("BASE_FOLDER").unwrap().as_str());
 
     // Tell cargo to tell rustc to link the shuriken lib
     println!("cargo:rustc-link-lib=shuriken");
@@ -20,8 +18,10 @@ fn main() {
         // The input header we would like to generate
         // bindings for.
         .headers([
-            "/home/jgamba/dev/shuriken/Shuriken-Analyzer/shuriken/include/shuriken/api/C/shuriken_core.h",
-            "/home/jgamba/dev/shuriken/Shuriken-Analyzer/shuriken/include/shuriken/api/C/shuriken_core_data.h"
+            format!("{}include/shuriken/api/C/shuriken_core.h",
+                    env::var("BASE_FOLDER").unwrap().as_str()).as_str(),
+            format!("{}include/shuriken/api/C/shuriken_core_data.h",
+                    env::var("BASE_FOLDER").unwrap().as_str()).as_str(),
         ])
         .clang_arg("-std=c++17")
         .clang_arg("-x")

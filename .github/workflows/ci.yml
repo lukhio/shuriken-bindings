@@ -15,8 +15,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Build
+    - name: Clone Shuriken-Analyzer
+      uses: GuillaumeFalourd/clone-github-repo-action@v2.1
+      with:
+        depth: 1
+        branch: 'main'
+        owner: 'Shuriken-Group'
+        repository: 'Shuriken-Analyzer'
+    - name: Setup compiler on Linux
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-13 g++-13
+        echo "CC=gcc-13" >> $GITHUB_ENV
+        echo "CXX=g++-13" >> $GITHUB_ENV
+      shell: bash
+    - name: Install cmake
+      run: sudo apt-get install cmake
+    - name: Install git
+      run: sudo apt install git
+    - name: Install JDK
+      run: sudo apt install default-jdk
+    - name: Create build in CMake
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGITHUB_ACTION=ON -DDEX_TESTS=ON
+    - name: Build with cmake
+      run: cmake --build build/ -j
+    - name: Install with cmake
+      run: sudo cmake --install build/
+    - name : Run Shuriken tests
+      run: ctest --test-dir build/ --output-on-failure
+    - name: Setup environement variables for bindings
+      run: echo "BASE_FOLDER=Shuriken-Analyzer/shuriken/" >> $GITHUB_ENV
+
+    - name: Build bindings
       run: cargo build --verbose
     - name: Run tests
       run: RUSTFLAGS="-C instrument-coverage" cargo test --tests --verbose
