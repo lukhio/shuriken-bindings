@@ -1032,7 +1032,7 @@ impl DexContext {
         let method_ptr = unsafe { shuriken::get_method_by_name(self.ptr, c_str.as_ptr()) };
         if ! method_ptr.is_null() {
             let dvm_method = unsafe { DvmMethod::from_ptr(*method_ptr) };
-            self.method_ptrs.insert(String::from(dvm_method.method_name()), method_ptr);
+            self.method_ptrs.insert(String::from(dvm_method.demangled_name()), method_ptr);
             Some(dvm_method)
         } else {
             None
@@ -1247,6 +1247,7 @@ impl ApkContext {
 mod tests {
     mod dex {
         use super::super::*;
+        use parser::*;
         use std::fs;
         use std::path::PathBuf;
 
@@ -1377,35 +1378,35 @@ mod tests {
             assert!(class.is_some());
             let class = class.unwrap();
 
-            assert_eq!(&class.class_name, "DexParserTest");
-            assert_eq!(&class.super_class, "java.lang.Object");
-            assert_eq!(&class.source_file, "DexParserTest.java");
+            assert_eq!(class.class_name(), "DexParserTest");
+            assert_eq!(class.super_class(), "java.lang.Object");
+            assert_eq!(class.source_file(), "DexParserTest.java");
 
-            assert_eq!(class.access_flags, vec![DvmAccessFlag::ACC_PUBLIC]);
-            assert_eq!(class.instance_fields_size, 2);
-            assert_eq!(class.static_fields_size, 0);
+            assert_eq!(class.access_flags(), vec![DvmAccessFlag::ACC_PUBLIC]);
+            assert_eq!(class.instance_fields_size(), 2);
+            assert_eq!(class.static_fields_size(), 0);
 
             let class_descriptor = String::from("LDexParserTest;");
             let access_flags = [DvmAccessFlag::ACC_PUBLIC];
 
-            for (idx, field) in class.instance_fields.iter().enumerate() {
+            for (idx, field) in class.instance_fields().iter().enumerate() {
                 let access_flags = DvmAccessFlag::parse(
                     fields[idx]["flags"].parse::<u32>().unwrap(),
                     DvmAccessFlagType::Field
                 );
 
-                assert_eq!(field.class_name, class_descriptor);
-                assert_eq!(field.name, fields[idx]["name"]);
-                assert_eq!(field.access_flags, access_flags);
+                assert_eq!(field.class_name(), class_descriptor);
+                assert_eq!(field.name(), fields[idx]["name"]);
+                assert_eq!(field.access_flags(), access_flags);
 
                 if fields[idx]["type"].starts_with("L") {
-                    assert_eq!(field.field_type, DexTypes::Class);
-                    assert_eq!(field.fundamental_value, DexBasicTypes::FundamentalNone);
-                    assert_eq!(field.type_value, "Ljava/lang/String;");
+                    assert_eq!(field.field_type(), DexTypes::Class);
+                    assert_eq!(field.fundamental_value(), DexBasicTypes::FundamentalNone);
+                    assert_eq!(field.type_value(), "Ljava/lang/String;");
                 } else {
-                    assert_eq!(field.field_type, DexTypes::Fundamental);
-                    assert_eq!(field.fundamental_value, DexBasicTypes::Int);
-                    assert_eq!(field.type_value, "I");
+                    assert_eq!(field.field_type(), DexTypes::Fundamental);
+                    assert_eq!(field.fundamental_value(), DexBasicTypes::Int);
+                    assert_eq!(field.type_value(), "I");
                 }
             }
         }
@@ -1437,26 +1438,26 @@ mod tests {
             assert!(class.is_some());
             let class = class.unwrap();
 
-            assert_eq!(&class.class_name, "DexParserTest");
-            assert_eq!(&class.super_class, "java.lang.Object");
-            assert_eq!(&class.source_file, "DexParserTest.java");
+            assert_eq!(class.class_name(), "DexParserTest");
+            assert_eq!(class.super_class(), "java.lang.Object");
+            assert_eq!(class.source_file(), "DexParserTest.java");
 
-            assert_eq!(class.access_flags, vec![DvmAccessFlag::ACC_PUBLIC]);
-            assert_eq!(class.direct_methods_size, 4);
-            assert_eq!(class.virtual_methods_size, 0);
+            assert_eq!(class.access_flags(), vec![DvmAccessFlag::ACC_PUBLIC]);
+            assert_eq!(class.direct_methods_size(), 4);
+            assert_eq!(class.virtual_methods_size(), 0);
 
             let class_descriptor = String::from("LDexParserTest;");
             let access_flags = [DvmAccessFlag::ACC_PUBLIC];
 
-            for (idx, method) in class.direct_methods.iter().enumerate() {
+            for (idx, method) in class.direct_methods().iter().enumerate() {
                 let access_flags = DvmAccessFlag::parse(
                     methods[idx]["flags"].parse::<u32>().unwrap(),
                     DvmAccessFlagType::Method
                 );
 
-                assert_eq!(method.class_name, class_descriptor);
-                assert_eq!(method.dalvik_name, methods[idx]["dalvik_name"]);
-                assert_eq!(method.access_flags, access_flags);
+                assert_eq!(method.class_name(), class_descriptor);
+                assert_eq!(method.dalvik_name(), methods[idx]["dalvik_name"]);
+                assert_eq!(method.access_flags(), access_flags);
             }
         }
 
@@ -1466,10 +1467,10 @@ mod tests {
             let class = context.get_class_by_name("DexParserTest");
 
             assert!(class.is_some());
-            assert_eq!(class.as_ref().unwrap().class_name, "DexParserTest");
-            assert_eq!(class.as_ref().unwrap().super_class, "java.lang.Object");
-            assert_eq!(class.as_ref().unwrap().source_file, "DexParserTest.java");
-            assert_eq!(class.as_ref().unwrap().access_flags, vec![DvmAccessFlag::ACC_PUBLIC]);
+            assert_eq!(class.as_ref().unwrap().class_name(), "DexParserTest");
+            assert_eq!(class.as_ref().unwrap().super_class(), "java.lang.Object");
+            assert_eq!(class.as_ref().unwrap().source_file(), "DexParserTest.java");
+            assert_eq!(class.as_ref().unwrap().access_flags(), vec![DvmAccessFlag::ACC_PUBLIC]);
         }
 
         #[test]
@@ -1478,10 +1479,10 @@ mod tests {
             let method = context.get_method_by_name("LDexParserTest;->printMessage()V");
 
             assert!(method.is_some());
-            assert_eq!(method.as_ref().unwrap().method_name, "printMessage");
-            assert_eq!(method.as_ref().unwrap().class_name, "LDexParserTest;");
-            assert_eq!(method.as_ref().unwrap().prototype, "()V");
-            assert_eq!(method.as_ref().unwrap().access_flags, vec![DvmAccessFlag::ACC_PRIVATE]);
+            assert_eq!(method.as_ref().unwrap().method_name(), "printMessage");
+            assert_eq!(method.as_ref().unwrap().class_name(), "LDexParserTest;");
+            assert_eq!(method.as_ref().unwrap().prototype(), "()V");
+            assert_eq!(method.as_ref().unwrap().access_flags(), vec![DvmAccessFlag::ACC_PRIVATE]);
         }
 
         #[test]
@@ -1740,9 +1741,9 @@ mod tests {
 
             for idx in 0..context.get_number_of_classes() {
                 let class = context.get_class_by_id(idx as u16).unwrap();
-                let class_name = class.class_name;
+                let class_name = class.class_name();
                 println!("class name: {class_name:#?}");
-                let class_analysis = context.get_analyzed_class(&class_name);
+                let class_analysis = context.get_analyzed_class(class_name);
                 println!("class_analysis: {class_analysis:#?}");
                 break;
 
