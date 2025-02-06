@@ -13,7 +13,6 @@ pub mod dvm_access_flags;
 
 use std::path::Path;
 use std::ffi::{ CStr, CString };
-use std::slice::from_raw_parts;
 use std::collections::HashMap;
 
 use crate::parser::{
