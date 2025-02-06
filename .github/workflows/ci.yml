@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout bindings
+      uses: actions/checkout@v4
+
     - name: Clone Shuriken-Analyzer
       uses: GuillaumeFalourd/clone-github-repo-action@v2.1
       with:
@@ -49,8 +52,6 @@ jobs:
     - name: Dumb debugging again
       run: ls -l `pwd`/Shuriken-Analyzer/shuriken/include/shuriken/api/C/
 
-    - name: Checkout bindings
-      uses: actions/checkout@v4
     - name: Build bindings
       run: cargo build --verbose
     - name: Run tests
