@@ -873,7 +873,7 @@ mod tests {
         }
 
         #[test]
-        fn test_get_analyze_class() {
+        fn test_get_analyzed_class() {
             let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             context.disassemble_dex();
             context.create_dex_analysis(true);
