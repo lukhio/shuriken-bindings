@@ -1404,7 +1404,7 @@ mod tests {
                 assert!(dvm_method.is_some());
 
                 let dvm_method = dvm_method.unwrap();
-                assert_eq!(dvm_method.method_string
+                assert_eq!(dvm_method.method_string()
                                      .split("\n")
                                      .zip(code)
                                      .filter(|&(a, b)| a != *b)
