@@ -44,6 +44,7 @@ jobs:
     - name: Setup environement variables for bindings
       run: echo "BASE_FOLDER=Shuriken-Analyzer/shuriken/" >> $GITHUB_ENV
 
+    - uses: actions/checkout@v4
     - name: Build bindings
       run: cargo build --verbose
     - name: Run tests
