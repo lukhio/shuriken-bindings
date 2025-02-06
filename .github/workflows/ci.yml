@@ -35,6 +35,8 @@ jobs:
       run: sudo apt install git
     - name: Install JDK
       run: sudo apt install default-jdk
+    - name: Change directory to Shuriken-Analyzer
+      run: cd Shuriken-Analyzer/
     - name: Create build in CMake
       run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGITHUB_ACTION=ON -DDEX_TESTS=ON
     - name: Build with cmake
@@ -46,6 +48,8 @@ jobs:
     - name: Setup environement variables for bindings
       run: echo "BASE_FOLDER=Shuriken-Analyzer/shuriken/" >> $GITHUB_ENV
 
+    - name: Change directory to shuriken-bindings
+      run: cd $HOME/shuriken-bindings/
     - name: Build bindings
       run: cargo build --verbose
     - name: Run tests
