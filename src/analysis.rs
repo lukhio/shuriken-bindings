@@ -10,7 +10,7 @@ use crate::dvm_access_flags::{ DvmAccessFlag, DvmAccessFlagType };
 /// Type alias for Shuriken's `ref_type`
 ///
 /// Enum that represents the possible reference types
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DvmRefType {
     /// New instance of a class
     REF_NEW_INSTANCE = 0x22,
