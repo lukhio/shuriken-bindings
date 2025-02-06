@@ -49,11 +49,6 @@ jobs:
     - name: Setup environement variables for bindings
       run: echo "BASE_FOLDER=`pwd`/Shuriken-Analyzer/shuriken/" >> $GITHUB_ENV
 
-    - name: Dumb debugging
-      run: tree `pwd`/Shuriken-Analyzer/shuriken/include
-    - name: Dumb debugging again
-      run: ls -l `pwd`/Shuriken-Analyzer/shuriken/include/shuriken/api/C/
-
     - name: Build bindings
       run: cargo build --verbose
     - name: Run tests
