@@ -13,7 +13,6 @@ pub mod dvm_access_flags;
 
 use std::path::Path;
 use std::ffi::{ CStr, CString };
-use std::slice::from_raw_parts;
 use std::collections::HashMap;
 
 use crate::parser::{
@@ -147,7 +146,7 @@ impl DexContext {
         let method_ptr = unsafe { shuriken::get_method_by_name(self.ptr, c_str.as_ptr()) };
         if ! method_ptr.is_null() {
             let dvm_method = unsafe { DvmMethod::from_ptr(*method_ptr) };
-            self.method_ptrs.insert(String::from(dvm_method.demangled_name()), method_ptr);
+            self.method_ptrs.insert(String::from(dvm_method.dalvik_name()), method_ptr);
             Some(dvm_method)
         } else {
             None
@@ -206,27 +205,18 @@ impl DexContext {
     }
 
     /// Obtain a `DvmClassAnalysis` given a `DvmClass`
-    ///
-    /// XXX continue here
-    pub fn get_analyzed_class_by_hdvmclass(&self, class: &DvmClass) -> Option<&DvmClassAnalysis> {
-        let class_ptr = self.class_ptrs
-            .get(class.class_name())
-            .expect("Cannot find raw pointer for class");
-
-        // println!("class_ptr {:#?}", *class_ptr);
-
-        let analysis = unsafe {
-            shuriken::get_analyzed_class_by_hdvmclass(self.ptr, *class_ptr)
+    pub fn get_analyzed_class_by_hdvmclass(&self, class: &DvmClass) -> Option<DvmClassAnalysis> {
+        let class_ptr = match self.class_ptrs.get(class.class_name()) {
+            Some(ptr) => ptr,
+            None => return None
         };
 
-        unsafe {
-            let analysis = *analysis;
-            // println!("analysis {:#?}", analysis);
-            let xrefto = from_raw_parts(analysis.xrefto, analysis.n_of_xrefto);
-            // println!("class method idx: {:#?}", xrefto);
-        }
 
-        todo!()
+        let analysis = unsafe {
+            DvmClassAnalysis::from_ptr(*shuriken::get_analyzed_class_by_hdvmclass(self.ptr, *class_ptr))
+        };
+
+        Some(analysis)
     }
 
     /// Obtain a `DvmClassAnalysis` given a class name
@@ -238,10 +228,6 @@ impl DexContext {
             shuriken::get_analyzed_class(self.ptr, c_str.as_ptr())
         };
 
-        // println!("____________________________________________");
-        // unsafe { println!("ptr: {:#?}", *class_analysis_ptr) };
-        // println!("____________________________________________");
-
         match class_analysis_ptr.is_null() {
             true => None,
             false => {
@@ -252,13 +238,35 @@ impl DexContext {
     }
 
     /// Obtain one DvmMethodAnalysis given its DvmMethod
-    pub fn get_analyzed_method_by_hdvmmethod(&self, method: &DvmMethod ) -> &DvmMethodAnalysis {
-        todo!();
+    pub fn get_analyzed_method_by_hdvmmethod(&self, method: &DvmMethod ) -> Option<DvmMethodAnalysis> {
+        let method_ptr = match self.method_ptrs.get(method.dalvik_name()) {
+            Some(ptr) => ptr,
+            None => return None
+        };
+
+        let analysis = unsafe {
+            DvmMethodAnalysis::from_ptr(*shuriken::get_analyzed_method_by_hdvmmethod(self.ptr, *method_ptr))
+        };
+
+        Some(analysis)
     }
 
-    /// Obtain one DvmMethodAnalysis given its name
-    pub fn get_analyzed_method(&self, method_full_name: &str) -> &DvmMethodAnalysis {
-        todo!();
+    /// Obtain one DvmMethodAnalysis given its full, demangled name
+    pub fn get_analyzed_method(&self, method_full_name: &str) -> Option<DvmMethodAnalysis> {
+        let c_str = CString::new(method_full_name)
+            .expect("CString::new failed");
+
+        let method_analysis_ptr = unsafe {
+            shuriken::get_analyzed_method(self.ptr, c_str.as_ptr())
+        };
+
+        match method_analysis_ptr.is_null() {
+            true => None,
+            false => {
+                let dvm_method_analysis = unsafe { DvmMethodAnalysis::from_ptr(*method_analysis_ptr) };
+                Some(dvm_method_analysis)
+            }
+        }
     }
 }
 
@@ -884,6 +892,86 @@ mod tests {
                     }
                 }
             }
+        }
+
+        #[test]
+        fn test_get_analyzed_class() {
+            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            context.disassemble_dex();
+            context.create_dex_analysis(true);
+            context.analyze_classes();
+
+            assert_eq!(context.get_number_of_classes(), 1);
+
+            let class_analysis = context.get_analyzed_class("DexParserTest");
+            assert!(class_analysis.is_some());
+            let class_analysis = class_analysis.unwrap();
+
+            let dvm_class = context.get_class_by_name("DexParserTest");
+            assert!(dvm_class.is_some());
+            let dvm_class = dvm_class.unwrap();
+
+            let class_analysis_by_hdvmclass = context.get_analyzed_class_by_hdvmclass(&dvm_class);
+            assert!(class_analysis_by_hdvmclass.is_some());
+            let class_analysis_by_hdvmclass = class_analysis_by_hdvmclass.unwrap();
+
+            assert_eq!(class_analysis.is_external(), class_analysis_by_hdvmclass.is_external());
+            assert_eq!(class_analysis.extends(), class_analysis_by_hdvmclass.extends());
+            assert_eq!(class_analysis.name(), class_analysis_by_hdvmclass.name());
+            assert_eq!(class_analysis.n_of_methods(), class_analysis_by_hdvmclass.n_of_methods());
+            assert_eq!(class_analysis.methods(), class_analysis_by_hdvmclass.methods());
+            assert_eq!(class_analysis.n_of_fields(), class_analysis_by_hdvmclass.n_of_fields());
+            assert_eq!(class_analysis.fields(), class_analysis_by_hdvmclass.fields());
+            assert_eq!(class_analysis.n_of_xrefnewinstance(), class_analysis_by_hdvmclass.n_of_xrefnewinstance());
+            assert_eq!(class_analysis.xrefnewinstance(), class_analysis_by_hdvmclass.xrefnewinstance());
+            assert_eq!(class_analysis.n_of_xrefconstclass(), class_analysis_by_hdvmclass.n_of_xrefconstclass());
+            assert_eq!(class_analysis.xrefconstclass(), class_analysis_by_hdvmclass.xrefconstclass());
+            assert_eq!(class_analysis.n_of_xrefto(), class_analysis_by_hdvmclass.n_of_xrefto());
+            assert_eq!(class_analysis.xrefto(), class_analysis_by_hdvmclass.xrefto());
+            assert_eq!(class_analysis.n_of_xreffrom(), class_analysis_by_hdvmclass.n_of_xreffrom());
+            assert_eq!(class_analysis.xreffrom(), class_analysis_by_hdvmclass.xreffrom());
+        }
+
+        #[test]
+        fn test_get_analyzed_method() {
+            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            context.disassemble_dex();
+            context.create_dex_analysis(true);
+            context.analyze_classes();
+
+            let dvm_method = context.get_method_by_name("LDexParserTest;->printMessage()V");
+            assert!(dvm_method.is_some());
+            let dvm_method = dvm_method.unwrap();
+
+            let method_analysis = context.get_analyzed_method(dvm_method.dalvik_name());
+            assert!(method_analysis.is_some());
+            let method_analysis = method_analysis.unwrap();
+
+            let method_analysis_by_hdvmmethod = context.get_analyzed_method_by_hdvmmethod(&dvm_method);
+            assert!(method_analysis_by_hdvmmethod.is_some());
+            let method_analysis_by_hdvmmethod = method_analysis_by_hdvmmethod.unwrap();
+
+            assert_eq!(method_analysis.name(), method_analysis_by_hdvmmethod.name());
+            assert_eq!(method_analysis.descriptor(), method_analysis_by_hdvmmethod.descriptor());
+            assert_eq!(method_analysis.full_name(), method_analysis_by_hdvmmethod.full_name());
+            assert_eq!(method_analysis.external(), method_analysis_by_hdvmmethod.external());
+            assert_eq!(method_analysis.is_android_api(), method_analysis_by_hdvmmethod.is_android_api());
+            assert_eq!(method_analysis.access_flags(), method_analysis_by_hdvmmethod.access_flags());
+            assert_eq!(method_analysis.class_name(), method_analysis_by_hdvmmethod.class_name());
+            assert_eq!(method_analysis.basic_blocks(), method_analysis_by_hdvmmethod.basic_blocks());
+            assert_eq!(method_analysis.n_of_xrefread(), method_analysis_by_hdvmmethod.n_of_xrefread());
+            assert_eq!(method_analysis.xrefread(), method_analysis_by_hdvmmethod.xrefread());
+            assert_eq!(method_analysis.n_of_xrefwrite(), method_analysis_by_hdvmmethod.n_of_xrefwrite());
+            assert_eq!(method_analysis.xrefwrite(), method_analysis_by_hdvmmethod.xrefwrite());
+            assert_eq!(method_analysis.n_of_xrefto(), method_analysis_by_hdvmmethod.n_of_xrefto());
+            assert_eq!(method_analysis.xrefto(), method_analysis_by_hdvmmethod.xrefto());
+            assert_eq!(method_analysis.n_of_xreffrom(), method_analysis_by_hdvmmethod.n_of_xreffrom());
+            assert_eq!(method_analysis.xreffrom(), method_analysis_by_hdvmmethod.xreffrom());
+            assert_eq!(method_analysis.n_of_xrefnewinstance(), method_analysis_by_hdvmmethod.n_of_xrefnewinstance());
+            assert_eq!(method_analysis.xrefnewinstance(), method_analysis_by_hdvmmethod.xrefnewinstance());
+            assert_eq!(method_analysis.n_of_xrefconstclass(), method_analysis_by_hdvmmethod.n_of_xrefconstclass());
+            assert_eq!(method_analysis.xrefconstclass(), method_analysis_by_hdvmmethod.xrefconstclass());
+            assert_eq!(method_analysis.method_string(), method_analysis_by_hdvmmethod.method_string());
         }
     }
 }

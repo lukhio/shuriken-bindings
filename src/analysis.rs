@@ -41,7 +41,7 @@ pub enum DvmRefType {
 /// Type alias for Shuriken's `hdvm_class_method_idx_t`
 ///
 /// Cross-ref that contains class, method and instruction address
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmClassMethodIdx {
     /// Class of the struct
     class: String,
@@ -93,7 +93,7 @@ impl DvmClassMethodIdx {
 /// Type alias for Shuriken's `hdvm_method_idx_t`
 ///
 ///  Cross-ref that contains a method and instruction address
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmMethodIdx {
     /// Method of the XRef
     method: String,
@@ -130,7 +130,7 @@ impl DvmMethodIdx {
 /// Type alias for Shuriken's `hdvm_class_field_idx_t`
 ///
 ///  Cross-ref that contains class, field and instruction address
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmClassFieldIdx {
     /// Class of the XRef
     class: String,
@@ -182,7 +182,7 @@ impl DvmClassFieldIdx {
 /// Type alias for Shuriken's `hdvm_class_idx_t`
 ///
 /// Cross-ref that contains class and instruction address
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmClassIdx {
     /// Class of the XRef
     class: String,
@@ -220,7 +220,7 @@ impl DvmClassIdx {
 ///
 /// Structure that contains a type of reference, a method analysis where reference is and the index
 /// in the method where the reference to a class is
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmRefTypeMethodIdx {
     /// Reference type
     ref_type: DvmRefType,
@@ -281,7 +281,7 @@ impl DvmRefTypeMethodIdx {
 /// Type alias for Shuriken's `hdvm_classxref_t`
 ///
 /// Class cross-ref
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmClassXref {
     /// Class name
     class: String,
@@ -333,7 +333,7 @@ impl DvmClassXref {
 /// Type alias for Shuriken's `hdvmbasicblock_t`
 ///
 /// Structure that stores information of a basic block
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmBasicBlock {
     /// Number of instructions in the block
     n_of_instructions: usize,
@@ -441,7 +441,7 @@ impl DvmBasicBlock {
 /// Type alias for Shuriken's `basic_blocks_t`
 ///
 /// Structure to keep all the basic blocks
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmBasicBlocks {
     /// Number of basic blocks
     n_of_blocks: usize,
@@ -478,7 +478,7 @@ impl DvmBasicBlocks {
 /// Type alias for Shuriken's `hdvmfieldanalysis_t`
 ///
 /// Field analysis structure
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmFieldAnalysis {
     /// Full name of the FieldAnalysis
     name: String,
@@ -552,14 +552,22 @@ impl DvmFieldAnalysis {
 
 /// Type alias for Shuriken's `hdvmstringanalysis_t`
 ///
-/// Structure to keep information about the string analysis [UNUSED FOR NOW]
-#[derive(Debug)]
-pub struct DvmStringAnalysis(shuriken::hdvmstringanalysis_t);
+/// Structure to keep information about the string analysis.
+/// Note: marked as unused in Shuriken as of commit 80443a3 so not implemented here either.
+#[derive(Debug, PartialEq)]
+pub struct DvmStringAnalysis {
+    /// Value of the string
+    value: String,
+    /// Number of xref from
+    n_of_xreffrom: usize,
+    /// Xrefs from
+    xreffrom: Vec<DvmClassMethodIdx>,
+}
 
 /// Type alias for Shuriken's `hdvmmethodanalysis_t`
 ///
 /// Structure to keep information about the method analysis
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmMethodAnalysis {
     /// Name of the method
     name: String,
@@ -606,9 +614,7 @@ pub struct DvmMethodAnalysis {
 }
 
 impl DvmMethodAnalysis {
-    fn from_ptr(ptr: shuriken::hdvmmethodanalysis_t) -> Self {
-        println!("ptr: {ptr:#?}");
-
+    pub fn from_ptr(ptr: shuriken::hdvmmethodanalysis_t) -> Self {
         let name = unsafe {
             CStr::from_ptr(ptr.name)
                 .to_str()
@@ -824,7 +830,7 @@ impl DvmMethodAnalysis {
 /// Type alias for Shuriken's `hdvmclassanalysis_t`
 ///
 /// Structure to keep information about the class analysis
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmClassAnalysis {
     /// is external class?
     is_external: bool,
