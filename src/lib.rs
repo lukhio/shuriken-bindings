@@ -644,9 +644,6 @@ pub struct DvmClassFieldIdx {
 
 impl DvmClassFieldIdx {
     pub fn from_ptr(ptr: shuriken::hdvm_class_field_idx_t) -> Self {
-        // println!("{:?}", ptr);
-        // println!("{:?}", unsafe { (*ptr.cls).name_ });
-
         let class = unsafe {
             CStr::from_ptr((*ptr.cls).name_)
                 .to_str()
@@ -660,9 +657,6 @@ impl DvmClassFieldIdx {
                 .expect("Error: string is not valid UTF-8")
                 .to_string()
         };
-
-        // println!("{class:?}");
-        // println!("{field:?}");
 
         Self {
             class,
@@ -890,11 +884,44 @@ pub struct DvmFieldAnalysis {
     /// Number of xrefread
     n_of_xrefread: usize,
     /// xrefread
-    xrefread: Vec<shuriken::hdvm_class_method_idx_t>,
+    xrefread: Vec<DvmClassMethodIdx>,
     /// Number of xrefwrite
     n_of_xrefwrite: usize,
     /// xrefwrite
-    xrefwrite: Vec<shuriken::hdvm_class_method_idx_t>,
+    xrefwrite: Vec<DvmClassMethodIdx>
+}
+
+impl DvmFieldAnalysis {
+    pub fn from_ptr(ptr: shuriken::hdvmfieldanalysis_t) -> Self {
+        let name = unsafe {
+            CStr::from_ptr(ptr.name)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let xrefread = unsafe {
+            from_raw_parts(ptr.xrefread, ptr.n_of_xrefread)
+                .iter()
+                .map(|xref| DvmClassMethodIdx::from_ptr(*xref))
+                .collect::<Vec<DvmClassMethodIdx>>()
+        };
+
+        let xrefwrite = unsafe {
+            from_raw_parts(ptr.xrefwrite, ptr.n_of_xrefwrite)
+                .iter()
+                .map(|xref| DvmClassMethodIdx::from_ptr(*xref))
+                .collect::<Vec<DvmClassMethodIdx>>()
+        };
+
+        Self {
+            name,
+            n_of_xrefread: ptr.n_of_xrefread,
+            xrefread,
+            n_of_xrefwrite: ptr.n_of_xrefwrite,
+            xrefwrite
+        }
+    }
 }
 
 /// Type alias for Shuriken's `hdvmstringanalysis_t`
@@ -953,7 +980,6 @@ pub struct DvmMethodAnalysis {
 }
 
 impl DvmMethodAnalysis {
-    // TODO XXX
     fn from_ptr(ptr: shuriken::hdvmmethodanalysis_t) -> Self {
         println!("ptr: {ptr:#?}");
 
@@ -1082,7 +1108,7 @@ pub struct DvmClassAnalysis {
     /// number of fields
     n_of_fields: usize,
     /// pointer to an array of fields
-    fields: Vec<shuriken::hdvmfieldanalysis_t>,
+    fields: Vec<DvmFieldAnalysis>,
     /// number of xrefnewinstance
     n_of_xrefnewinstance: usize,
     /// New instance of this class
@@ -1124,6 +1150,13 @@ impl DvmClassAnalysis {
                 .collect::<Vec<DvmMethodAnalysis>>()
         };
 
+        let fields = unsafe {
+            from_raw_parts(ptr.fields, ptr.n_of_fields as usize)
+                .iter()
+                .map(|field| DvmFieldAnalysis::from_ptr(*(*field)))
+                .collect::<Vec<DvmFieldAnalysis>>()
+        };
+
         let xrefnewinstance = unsafe {
             from_raw_parts(ptr.xrefnewinstance, ptr.n_of_xrefnewinstance)
                 .iter()
@@ -1159,7 +1192,7 @@ impl DvmClassAnalysis {
             n_of_methods: ptr.n_of_methods,
             methods,
             n_of_fields: ptr.n_of_fields,
-            fields: Vec::new(),
+            fields,
             n_of_xrefnewinstance: ptr.n_of_xrefnewinstance,
             xrefnewinstance,
             n_of_xrefconstclass: ptr.n_of_xrefconstclass,
