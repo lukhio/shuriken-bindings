@@ -46,7 +46,7 @@ jobs:
 
     - uses: actions/checkout@v4
     - name: Dumb debugging hack
-      run: echo $HOME ; ls $HOME; pwd; ls $HOME/shuriken-bindings/
+      run: echo $HOME ; ls $HOME; pwd;
     - name: Build bindings
       run: cargo build --verbose
     - name: Run tests
