@@ -45,7 +45,9 @@ jobs:
       run: echo "BASE_FOLDER=`pwd`/Shuriken-Analyzer/shuriken/" >> $GITHUB_ENV
 
     - name: Dumb debugging
-      run: sudo apt-get install -y tree && tree `pwd`/Shuriken-Analyzer/
+      run: tree `pwd`/Shuriken-Analyzer/shuriken/include
+    - name: Dumb debugging again
+      run: ls -l `pwd`/Shuriken-Analyzer/shuriken/include/shuriken/api/C/
 
     - name: Checkout bindings
       uses: actions/checkout@v4
