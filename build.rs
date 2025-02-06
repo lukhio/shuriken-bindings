@@ -11,9 +11,6 @@ fn main() {
     // Tell cargo to tell rustc to link the shuriken lib
     println!("cargo:rustc-link-lib=shuriken");
 
-    // Tell cargo where the header files are
-    println!("cargo:include={}", env::var("BASE_FOLDER").unwrap().as_str());
-
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
     // the resulting bindings.
@@ -29,6 +26,7 @@ fn main() {
         .clang_arg("-std=c++17")
         .clang_arg("-x")
         .clang_arg("c++")
+        .clang_arg(format!("-I{}", env::var("BASE_FOLDER").unwrap().as_str()))
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
