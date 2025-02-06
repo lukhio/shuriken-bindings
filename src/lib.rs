@@ -1144,14 +1144,14 @@ impl DvmClassAnalysis {
         };
 
         let methods = unsafe {
-            from_raw_parts(ptr.methods, ptr.n_of_methods as usize)
+            from_raw_parts(ptr.methods, ptr.n_of_methods)
                 .iter()
                 .map(|method| DvmMethodAnalysis::from_ptr(*(*method)))
                 .collect::<Vec<DvmMethodAnalysis>>()
         };
 
         let fields = unsafe {
-            from_raw_parts(ptr.fields, ptr.n_of_fields as usize)
+            from_raw_parts(ptr.fields, ptr.n_of_fields)
                 .iter()
                 .map(|field| DvmFieldAnalysis::from_ptr(*(*field)))
                 .collect::<Vec<DvmFieldAnalysis>>()
