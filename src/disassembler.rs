@@ -50,7 +50,7 @@ pub enum DexInstType {
 /// Type alias for Shuriken's `hdvminstruction_t`
 ///
 /// Structure for an instruction in the dalvik virtual machine
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmInstruction {
     instruction_type: DexInstType,
     instruction_length: usize,
@@ -144,7 +144,7 @@ impl DvmInstruction {
 /// Type alias for Shuriken's `dvmhandler_data_t`
 ///
 /// Structure that keeps information about a handler
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmHandlerData {
     handler_type: String,
     handler_start_addr: u64
@@ -179,7 +179,7 @@ impl DvmHandlerData {
 /// Type alias for Shuriken's `dvmexceptions_data_t`
 ///
 /// Structure with the information from the exceptions in the code
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmException {
     try_value_start_addr: u64,
     try_value_end_addr: u64,
@@ -228,7 +228,7 @@ impl DvmException {
 /// Type alias for Shuriken's `dvmdisassembled_method_t`
 ///
 /// Structure that represents a disassembled method from the dalvik file
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DvmDisassembledMethod {
     // TODO: replace with ref maybe?
     method_id: DvmMethod,
