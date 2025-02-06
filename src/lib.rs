@@ -206,27 +206,20 @@ impl DexContext {
     }
 
     /// Obtain a `DvmClassAnalysis` given a `DvmClass`
-    ///
-    /// XXX continue here
-    pub fn get_analyzed_class_by_hdvmclass(&self, class: &DvmClass) -> Option<&DvmClassAnalysis> {
-        let class_ptr = self.class_ptrs
-            .get(class.class_name())
-            .expect("Cannot find raw pointer for class");
-
-        // println!("class_ptr {:#?}", *class_ptr);
-
-        let analysis = unsafe {
-            shuriken::get_analyzed_class_by_hdvmclass(self.ptr, *class_ptr)
+    pub fn get_analyzed_class_by_hdvmclass(&self, class: &DvmClass) -> Option<DvmClassAnalysis> {
+        let class_ptr = match self.class_ptrs.get(class.class_name()) {
+            Some(ptr) => ptr,
+            None => return None
         };
 
-        unsafe {
-            let analysis = *analysis;
-            // println!("analysis {:#?}", analysis);
-            let xrefto = from_raw_parts(analysis.xrefto, analysis.n_of_xrefto);
-            // println!("class method idx: {:#?}", xrefto);
-        }
 
-        todo!()
+        println!("class_ptr {:#?}", *class_ptr);
+
+        let analysis = unsafe {
+            DvmClassAnalysis::from_ptr(*shuriken::get_analyzed_class_by_hdvmclass(self.ptr, *class_ptr))
+        };
+
+        Some(analysis)
     }
 
     /// Obtain a `DvmClassAnalysis` given a class name
@@ -884,6 +877,23 @@ mod tests {
                     }
                 }
             }
+        }
+
+        #[test]
+        fn test_get_analyze_class() {
+            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            context.disassemble_dex();
+            context.create_dex_analysis(true);
+            context.analyze_classes();
+
+            assert_eq!(context.get_number_of_classes(), 1);
+
+            let dvm_class = context.get_class_by_name("DexParserTest");
+            assert!(dvm_class.is_some());
+            let dvm_class = dvm_class.unwrap();
+
+            let class_analysis = context.get_analyzed_class_by_hdvmclass(&dvm_class);
+            assert!(class_analysis.is_some());
         }
     }
 }
