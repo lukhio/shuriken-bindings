@@ -606,7 +606,28 @@ impl DvmClassMethodIdx {
 ///
 ///  Cross-ref that contains a method and instruction address
 #[derive(Debug)]
-pub struct DvmMethodIdx(shuriken::hdvm_method_idx_t);
+pub struct DvmMethodIdx {
+    /// Method of the XRef
+    method: String,
+    /// Idx
+    idx: u64
+}
+
+impl DvmMethodIdx {
+    pub fn from_ptr(ptr: shuriken::hdvm_method_idx_t) -> Self {
+        let method = unsafe {
+            CStr::from_ptr((*ptr.method).full_name)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        Self {
+            method,
+            idx: ptr.idx as u64
+        }
+    }
+}
 
 /// Type alias for Shuriken's `hdvm_class_field_idx_t`
 ///
@@ -996,11 +1017,11 @@ pub struct DvmClassAnalysis {
     /// number of xrefnewinstance
     n_of_xrefnewinstance: usize,
     /// New instance of this class
-    xrefnewinstance: Vec<shuriken::hdvm_method_idx_t>,
+    xrefnewinstance: Vec<DvmMethodIdx>,
     /// number of const class
     n_of_xrefconstclass: usize,
     /// use of const class of this class
-    xrefconstclass: Vec<shuriken::hdvm_method_idx_t>,
+    xrefconstclass: Vec<DvmMethodIdx>,
     /// number of xrefto
     n_of_xrefto: usize,
     /// Classes that this class calls
@@ -1031,12 +1052,30 @@ impl DvmClassAnalysis {
             from_raw_parts(ptr.methods, ptr.n_of_methods as usize).to_vec()
         };
 
+        // XXX
+        /*
         println!("+++++++++++++++++++++++++++++++++++++++++++++++++");
         for method in methods.iter() {
             let analysis = unsafe { DvmMethodAnalysis::from_ptr(*(*method)) };
             println!("{analysis:#?}");
+            panic!();
         }
         println!("+++++++++++++++++++++++++++++++++++++++++++++++++");
+        */
+
+        let xrefnewinstance = unsafe {
+            from_raw_parts(ptr.xrefnewinstance, ptr.n_of_xrefnewinstance)
+                .iter()
+                .map(|xref| DvmMethodIdx::from_ptr(*xref))
+                .collect::<Vec<DvmMethodIdx>>()
+        };
+
+        let xrefconstclass = unsafe {
+            from_raw_parts(ptr.xrefconstclass, ptr.n_of_xrefconstclass)
+                .iter()
+                .map(|xref| DvmMethodIdx::from_ptr(*xref))
+                .collect::<Vec<DvmMethodIdx>>()
+        };
 
         DvmClassAnalysis {
             is_external: ptr.is_external == 0,
@@ -1047,9 +1086,9 @@ impl DvmClassAnalysis {
             n_of_fields: ptr.n_of_fields,
             fields: Vec::new(),
             n_of_xrefnewinstance: ptr.n_of_xrefnewinstance,
-            xrefnewinstance: Vec::new(),
+            xrefnewinstance,
             n_of_xrefconstclass: ptr.n_of_xrefconstclass,
-            xrefconstclass: Vec::new(),
+            xrefconstclass,
             n_of_xrefto: ptr.n_of_xrefto,
             xrefto: Vec::new(),
             n_of_xreffrom: ptr.n_of_xreffrom,
