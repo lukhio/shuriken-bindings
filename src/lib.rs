@@ -49,10 +49,6 @@ pub struct DexContext {
     field_analyses: HashMap<String, DvmFieldAnalysis>,
 }
 
-/// Type alias for Shuriken's `hApkContext`
-#[derive(Debug)]
-pub struct ApkContext(shuriken::hApkContext);
-
 // --------------------------- Parser API ---------------------------
 
 impl Drop for DexContext {
@@ -273,52 +269,117 @@ impl DexContext {
 // C - APK part of the CORE API from ShurikenLib
 // --------------------------- Parser API ---------------------------
 
+/// Type alias for Shuriken's `hApkContext`
+#[derive(Debug)]
+pub struct ApkContext {
+    ptr: shuriken::hApkContext
+}
+
+impl Drop for ApkContext {
+    /// Since the context object use dynamic memory this method will properly destroy the object
+    fn drop(&mut self) {
+        unsafe {
+            shuriken::destroy_apk(self.ptr);
+        }
+    }
+}
+
 impl ApkContext {
     /// main method from the APK Core API it parses the APK file and it retrieves a context object
-    pub fn parse_apk(filepath: String, create_xref: bool) -> Self {
-        todo!();
-    }
+    pub fn parse_apk(filepath: &Path, create_xrefs: bool) -> Self {
+        let xrefs = if create_xrefs {
+            1
+        } else {
+            0
+        };
 
-    /// Since the context object use dynamic memory this method will properly destroy the object
-    ///
-    /// TODO: implement using `Drop` instead
-    pub fn destroy_apk(context: ApkContext) {
-        todo!();
+        let c_str = CString::new(filepath.to_path_buf().into_os_string().into_string().unwrap()).unwrap();
+
+        let ptr = unsafe {
+            shuriken::parse_apk(c_str.as_ptr(), xrefs)
+        };
+
+        Self { ptr }
     }
 
     /// Get the number of DEX files in an APK
     ///
     /// APKs may contain multiple DEX files. This function retrieve the number of DEX files in an APK.
     pub fn get_number_of_dex_files(&self) -> usize {
-        todo!();
+        unsafe { shuriken::get_number_of_dex_files(self.ptr) as usize }
     }
 
     /// Given an index, retrieve the name of one of the DEX file
-    pub fn get_dex_file_by_index(&self, idx: usize) -> String {
-        todo!();
+    pub fn get_dex_file_by_index(&self, idx: usize) -> Option<String> {
+        let str_ptr = unsafe { shuriken::get_dex_file_by_index(self.ptr, idx as u32) };
+
+        match str_ptr.is_null() {
+            true => None,
+            false => if let Ok(string) = unsafe { CStr::from_ptr(str_ptr).to_str() } {
+                Some(string.to_owned())
+            } else {
+                None
+            }
+        }
     }
 
-    /// Get the number of classes in an APK
+    /// Get the number of classes in a DEX file
     ///
     /// Every DEX file contains a number of classes. This function retrieves the total number of
-    /// classes in an APK
-    pub fn get_number_of_classes_for_dex_file(&self, dex_file: &str) -> usize {
-        todo!();
+    /// classes in a given DEX file
+    pub fn get_number_of_classes_from_dex(&self, dex_file: &str) -> Option<usize> {
+        let dex_name = CString::new(dex_file)
+            .expect("CString::new() failed");
+
+        match unsafe { shuriken::get_number_of_classes_for_dex_file(self.ptr, dex_name.as_ptr()) } {
+            -1 => None,
+            nb => Some(nb as usize)
+        }
     }
 
     /// Retrieve one of the `DvmClass` from a DEX file
-    pub fn get_hdvmclass_from_dex_by_index(&self, dex_file: &str, idx: usize) -> &DvmClass {
-        todo!();
+    pub fn get_hdvmclass_from_dex_by_index(&self, dex_file: &str, idx: usize) -> Option<DvmClass> {
+        let dex_name = CString::new(dex_file)
+            .expect("CString::new() failed");
+
+        let ptr = unsafe {
+            shuriken::get_hdvmclass_from_dex_by_index(self.ptr, dex_name.as_ptr(), idx as u32)
+        };
+
+        match ptr.is_null() {
+            true => None,
+            false => unsafe { Some(DvmClass::from_ptr(*ptr)) }
+        }
     }
 
     /// Retrieve the number of strings from a given DEX
-    pub fn get_number_of_strings_from_dex(&self, dex_file: &str) -> usize {
-        todo!();
+    pub fn get_number_of_strings_from_dex(&self, dex_file: &str) -> Option<usize> {
+        let dex_name = CString::new(dex_file)
+            .expect("CString::new() failed");
+
+        match unsafe { shuriken::get_number_of_strings_from_dex(self.ptr, dex_name.as_ptr()) } {
+            -1 => None,
+            nb => Some(nb as usize)
+        }
     }
 
     /// Get a string from a DEX by its index
-    pub fn get_string_by_id_from_dex(&self, dex_file: &str, idx: usize) -> &str {
-        todo!();
+    pub fn get_string_by_id_from_dex(&self, dex_file: &str, idx: usize) -> Option<String> {
+        let dex_name = CString::new(dex_file)
+            .expect("CString::new() failed");
+
+        let str_ptr = unsafe {
+            shuriken::get_string_by_id_from_dex(self.ptr, dex_name.as_ptr(), idx as u32)
+        };
+
+        match str_ptr.is_null() {
+            true => None,
+            false => if let Ok(string) = unsafe { CStr::from_ptr(str_ptr).to_str() } {
+                Some(string.to_owned())
+            } else {
+                None
+            }
+        }
     }
 
     // --------------------------- Disassembly API ---------------------------
