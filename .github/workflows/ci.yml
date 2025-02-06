@@ -44,6 +44,9 @@ jobs:
     - name: Setup environement variables for bindings
       run: echo "BASE_FOLDER=`pwd`/Shuriken-Analyzer/shuriken/" >> $GITHUB_ENV
 
+    - name: Dumb debugging
+      run: sudo apt-get install -y tree && tree `pwd`/Shuriken-Analyzer/
+
     - name: Checkout bindings
       uses: actions/checkout@v4
     - name: Build bindings
