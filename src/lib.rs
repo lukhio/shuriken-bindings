@@ -881,12 +881,33 @@ mod tests {
 
             assert_eq!(context.get_number_of_classes(), 1);
 
+            let class_analysis = context.get_analyzed_class("DexParserTest");
+            assert!(class_analysis.is_some());
+            let class_analysis = class_analysis.unwrap();
+
             let dvm_class = context.get_class_by_name("DexParserTest");
             assert!(dvm_class.is_some());
             let dvm_class = dvm_class.unwrap();
 
-            let class_analysis = context.get_analyzed_class_by_hdvmclass(&dvm_class);
-            assert!(class_analysis.is_some());
+            let class_analysis_by_hdvmclass = context.get_analyzed_class_by_hdvmclass(&dvm_class);
+            assert!(class_analysis_by_hdvmclass.is_some());
+            let class_analysis_by_hdvmclass = class_analysis_by_hdvmclass.unwrap();
+
+            assert_eq!(class_analysis.is_external(), class_analysis_by_hdvmclass.is_external());
+            assert_eq!(class_analysis.extends(), class_analysis_by_hdvmclass.extends());
+            assert_eq!(class_analysis.name(), class_analysis_by_hdvmclass.name());
+            assert_eq!(class_analysis.n_of_methods(), class_analysis_by_hdvmclass.n_of_methods());
+            assert_eq!(class_analysis.methods(), class_analysis_by_hdvmclass.methods());
+            assert_eq!(class_analysis.n_of_fields(), class_analysis_by_hdvmclass.n_of_fields());
+            assert_eq!(class_analysis.fields(), class_analysis_by_hdvmclass.fields());
+            assert_eq!(class_analysis.n_of_xrefnewinstance(), class_analysis_by_hdvmclass.n_of_xrefnewinstance());
+            assert_eq!(class_analysis.xrefnewinstance(), class_analysis_by_hdvmclass.xrefnewinstance());
+            assert_eq!(class_analysis.n_of_xrefconstclass(), class_analysis_by_hdvmclass.n_of_xrefconstclass());
+            assert_eq!(class_analysis.xrefconstclass(), class_analysis_by_hdvmclass.xrefconstclass());
+            assert_eq!(class_analysis.n_of_xrefto(), class_analysis_by_hdvmclass.n_of_xrefto());
+            assert_eq!(class_analysis.xrefto(), class_analysis_by_hdvmclass.xrefto());
+            assert_eq!(class_analysis.n_of_xreffrom(), class_analysis_by_hdvmclass.n_of_xreffrom());
+            assert_eq!(class_analysis.xreffrom(), class_analysis_by_hdvmclass.xreffrom());
         }
     }
 }
