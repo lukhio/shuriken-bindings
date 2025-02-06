@@ -614,7 +614,7 @@ pub struct DvmMethodAnalysis {
 }
 
 impl DvmMethodAnalysis {
-    fn from_ptr(ptr: shuriken::hdvmmethodanalysis_t) -> Self {
+    pub fn from_ptr(ptr: shuriken::hdvmmethodanalysis_t) -> Self {
         let name = unsafe {
             CStr::from_ptr(ptr.name)
                 .to_str()
