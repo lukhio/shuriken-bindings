@@ -114,6 +114,31 @@ impl DvmInstruction {
             disassembly
         }
     }
+
+    /// Return the instruction type
+    pub fn instruction_type(&self) -> DexInstType {
+        self.instruction_type
+    }
+
+    /// Return the instruction length
+    pub fn instruction_length(&self) -> usize {
+        self.instruction_length
+    }
+
+    /// Return the instruction address
+    pub fn address(&self) -> u64 {
+        self.address
+    }
+
+    /// Return the instruction opcode
+    pub fn op(&self) -> u32 {
+        self.op
+    }
+
+    /// Return the instruction string disassembly representation
+    pub fn disassembly(&self) -> &str {
+        &self.disassembly
+    }
 }
 
 /// Type alias for Shuriken's `dvmhandler_data_t`
@@ -138,6 +163,16 @@ impl DvmHandlerData {
             handler_type,
             handler_start_addr: ptr.handler_start_addr
         }
+    }
+
+    /// Return the handler type
+    pub fn handler_type(&self) -> &str {
+        &self.handler_type
+    }
+
+    /// Return the handler start address
+    pub fn handler_start_addr(&self) -> u64 {
+        self.handler_start_addr
     }
 }
 
@@ -167,6 +202,26 @@ impl DvmException {
             n_of_handlers: ptr.n_of_handlers,
             handlers
         }
+    }
+
+    /// Return the try value start address
+    pub fn try_value_start_addr(&self) -> u64 {
+        self.try_value_start_addr
+    }
+
+    /// Return the try value end address
+    pub fn try_value_end_addr(&self) -> u64 {
+        self.try_value_end_addr
+    }
+
+    /// Return the number of handlers
+    pub fn n_of_handlers(&self) -> usize {
+        self.n_of_handlers
+    }
+
+    /// Return a reference to the handlers
+    pub fn handlers(&self) -> &[DvmHandlerData] {
+        &self.handlers
     }
 }
 
@@ -222,5 +277,40 @@ impl DvmDisassembledMethod {
             instructions,
             method_string
         }
+    }
+
+    /// Return a reference to the method id
+    pub fn method_id(&self) -> &DvmMethod {
+        &self.method_id
+    }
+
+    /// Return the number of registers
+    pub fn n_of_registers(&self) -> usize {
+        self.n_of_registers
+    }
+
+    /// Return the number of exceptions
+    pub fn n_of_exceptions(&self) -> usize {
+        self.n_of_exceptions
+    }
+
+    /// Return a reference to the exception information
+    pub fn exception_information(&self) -> &[DvmException] {
+        &self.exception_information
+    }
+
+    /// Return the number of instructions
+    pub fn n_of_instructions(&self) -> usize {
+        self.n_of_instructions
+    }
+
+    /// Return the method string
+    pub fn method_string(&self) -> &str {
+        &self.method_string
+    }
+
+    /// Return the instructions
+    pub fn instructions(&self) -> &[DvmInstruction] {
+        &self.instructions
     }
 }
