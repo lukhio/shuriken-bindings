@@ -704,13 +704,84 @@ impl DvmClassIdx {
 /// Structure that contains a type of reference, a method analysis where reference is and the index
 /// in the method where the reference to a class is
 #[derive(Debug)]
-pub struct DvmRefTypeMethodIdx(shuriken::hdvm_reftype_method_idx_t);
+pub struct DvmRefTypeMethodIdx {
+    /// Reference type
+    ref_type: DvmRefType,
+    /// Method name
+    method: String,
+    /// Index
+    idx: u64
+}
+
+impl DvmRefTypeMethodIdx {
+    pub fn from_ptr(ptr: shuriken::hdvm_reftype_method_idx_t) -> Self {
+        let ref_type = match ptr.reType {
+            0x22 => DvmRefType::REF_NEW_INSTANCE,
+            0x1c => DvmRefType::REF_CLASS_USAGE,
+            0x6e => DvmRefType::INVOKE_VIRTUAL,
+            0x6f => DvmRefType::INVOKE_SUPER,
+            0x70 => DvmRefType::INVOKE_DIRECT,
+            0x71 => DvmRefType::INVOKE_STATIC,
+            0x72 => DvmRefType::INVOKE_INTERFACE,
+            0x74 => DvmRefType::INVOKE_VIRTUAL_RANGE,
+            0x75 => DvmRefType::INVOKE_SUPER_RANGE,
+            0x76 => DvmRefType::INVOKE_DIRECT_RANGE,
+            0x77 => DvmRefType::INVOKE_STATIC_RANGE,
+            0x78 => DvmRefType::INVOKE_INTERFACE_RANGE,
+            other => panic!("Invalid ref type: {other:#02X}"),
+        };
+
+        let method = unsafe {
+            CStr::from_ptr((*ptr.methodAnalysis).full_name)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        Self {
+            ref_type,
+            method,
+            idx: ptr.idx
+        }
+    }
+}
 
 /// Type alias for Shuriken's `hdvm_classxref_t`
 ///
 /// Class cross-ref
 #[derive(Debug)]
-pub struct DvmClassXRef(shuriken::hdvm_classxref_t);
+pub struct DvmClassXref {
+    /// Class name
+    class: String,
+    /// Number of methods references
+    n_of_reftype_method_idx: usize,
+    /// Methods
+    methods_xrefs: Vec<DvmRefTypeMethodIdx>
+}
+
+impl DvmClassXref {
+    pub fn from_ptr(ptr: shuriken::hdvm_classxref_t) -> Self {
+        let class = unsafe {
+            CStr::from_ptr((*ptr.classAnalysis).name_)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let methods_xrefs = unsafe {
+            from_raw_parts(ptr.hdvmReftypeMethodIdx, ptr.n_of_reftype_method_idx)
+                .iter()
+                .map(|xref| DvmRefTypeMethodIdx::from_ptr(*xref))
+                .collect::<Vec<DvmRefTypeMethodIdx>>()
+        };
+
+        Self {
+            class,
+            n_of_reftype_method_idx: ptr.n_of_reftype_method_idx,
+            methods_xrefs,
+        }
+    }
+}
 
 /// Type alias for Shuriken's `hdvmbasicblock_t`
 ///
@@ -1007,9 +1078,7 @@ pub struct DvmClassAnalysis {
     /// number of methods
     n_of_methods: usize,
     /// pointer to an array of methods
-    /// 
-    /// NOTE: actually a vector of pointers, should refer to context cache instead maybe?
-    methods: Vec<shuriken::hdvmmethodanalysis_t>,
+    methods: Vec<DvmMethodAnalysis>,
     /// number of fields
     n_of_fields: usize,
     /// pointer to an array of fields
@@ -1025,11 +1094,11 @@ pub struct DvmClassAnalysis {
     /// number of xrefto
     n_of_xrefto: usize,
     /// Classes that this class calls
-    xrefto: Vec<shuriken::hdvm_classxref_t>,
+    xrefto: Vec<DvmClassXref>,
     /// number of xreffrom
     n_of_xreffrom: usize,
     /// Classes that call this class
-    xreffrom: Vec<shuriken::hdvm_classxref_t>,
+    xreffrom: Vec<DvmClassXref>,
 }
 
 impl DvmClassAnalysis {
@@ -1049,19 +1118,11 @@ impl DvmClassAnalysis {
         };
 
         let methods = unsafe {
-            from_raw_parts(ptr.methods, ptr.n_of_methods as usize).to_vec()
+            from_raw_parts(ptr.methods, ptr.n_of_methods as usize)
+                .iter()
+                .map(|method| DvmMethodAnalysis::from_ptr(*(*method)))
+                .collect::<Vec<DvmMethodAnalysis>>()
         };
-
-        // XXX
-        /*
-        println!("+++++++++++++++++++++++++++++++++++++++++++++++++");
-        for method in methods.iter() {
-            let analysis = unsafe { DvmMethodAnalysis::from_ptr(*(*method)) };
-            println!("{analysis:#?}");
-            panic!();
-        }
-        println!("+++++++++++++++++++++++++++++++++++++++++++++++++");
-        */
 
         let xrefnewinstance = unsafe {
             from_raw_parts(ptr.xrefnewinstance, ptr.n_of_xrefnewinstance)
@@ -1077,12 +1138,26 @@ impl DvmClassAnalysis {
                 .collect::<Vec<DvmMethodIdx>>()
         };
 
+        let xrefto = unsafe {
+            from_raw_parts(ptr.xrefto, ptr.n_of_xrefto)
+                .iter()
+                .map(|xref| DvmClassXref::from_ptr(*xref))
+                .collect::<Vec<DvmClassXref>>()
+        };
+
+        let xreffrom = unsafe {
+            from_raw_parts(ptr.xreffrom, ptr.n_of_xreffrom)
+                .iter()
+                .map(|xref| DvmClassXref::from_ptr(*xref))
+                .collect::<Vec<DvmClassXref>>()
+        };
+
         DvmClassAnalysis {
             is_external: ptr.is_external == 0,
             extends,
             name,
             n_of_methods: ptr.n_of_methods,
-            methods: Vec::new(),
+            methods,
             n_of_fields: ptr.n_of_fields,
             fields: Vec::new(),
             n_of_xrefnewinstance: ptr.n_of_xrefnewinstance,
@@ -1090,9 +1165,9 @@ impl DvmClassAnalysis {
             n_of_xrefconstclass: ptr.n_of_xrefconstclass,
             xrefconstclass,
             n_of_xrefto: ptr.n_of_xrefto,
-            xrefto: Vec::new(),
+            xrefto,
             n_of_xreffrom: ptr.n_of_xreffrom,
-            xreffrom: Vec::new(),
+            xreffrom,
         }
     }
 }
