@@ -40,7 +40,7 @@ jobs:
     - name: Build with cmake
       run: cd Shuriken-Analyzer/ && cmake --build build/ -j
     - name : Run Shuriken tests
-      run: cd Shuriken-Analyzer/ && ctest --test-dir build/ --output-on-failure
+      run: cd Shuriken-Analyzer/ && LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/runner/work/shuriken-bindings/shuriken-bindings/Shuriken-Analyzer/build/_deps/libzip-build/lib/ ctest --test-dir build/ --output-on-failure
     - name: Setup environement variables for bindings
       run: echo "BASE_FOLDER=Shuriken-Analyzer/shuriken/" >> $GITHUB_ENV
 
