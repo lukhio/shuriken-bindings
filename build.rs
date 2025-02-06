@@ -11,6 +11,9 @@ fn main() {
     // Tell cargo to tell rustc to link the shuriken lib
     println!("cargo:rustc-link-lib=shuriken");
 
+    // Tell cargo where the header files are
+    println!("cargo:include={}", env::var("BASE_FOLDER").unwrap().as_str());
+
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
     // the resulting bindings.
