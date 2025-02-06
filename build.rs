@@ -26,7 +26,7 @@ fn main() {
         .clang_arg("-std=c++17")
         .clang_arg("-x")
         .clang_arg("c++")
-        .clang_arg(format!("-I{}", env::var("BASE_FOLDER").unwrap().as_str()))
+        .clang_arg(format!("-I{}/include/", env::var("BASE_FOLDER").unwrap().as_str()))
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
