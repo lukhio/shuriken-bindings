@@ -1001,8 +1001,8 @@ impl DexContext {
         let dvm_class_ptr = unsafe { shuriken::get_class_by_id(self.ptr, id) };
 
         if ! dvm_class_ptr.is_null() {
-            let dvm_class = DvmClass::from_hdvmclass_t(unsafe { *dvm_class_ptr });
-            self.class_ptrs.insert(dvm_class.class_name.clone(), dvm_class_ptr);
+            let dvm_class = DvmClass::from_ptr(unsafe { *dvm_class_ptr });
+            self.class_ptrs.insert(String::from(dvm_class.class_name()), dvm_class_ptr);
             Some(dvm_class)
         } else {
             None
@@ -1016,8 +1016,8 @@ impl DexContext {
 
         let class_ptr = unsafe { shuriken::get_class_by_name(self.ptr, c_str.as_ptr()) };
         if ! class_ptr.is_null() {
-            let dvm_class = DvmClass::from_hdvmclass_t(unsafe { *class_ptr });
-            self.class_ptrs.insert(dvm_class.class_name.clone(), class_ptr);
+            let dvm_class = DvmClass::from_ptr(unsafe { *class_ptr });
+            self.class_ptrs.insert(String::from(dvm_class.class_name()), class_ptr);
             Some(dvm_class)
         } else {
             None
@@ -1031,8 +1031,8 @@ impl DexContext {
 
         let method_ptr = unsafe { shuriken::get_method_by_name(self.ptr, c_str.as_ptr()) };
         if ! method_ptr.is_null() {
-            let dvm_method = unsafe { DvmMethod::from_hdvmmethod_t(*method_ptr) };
-            self.method_ptrs.insert(dvm_method.method_name.clone(), method_ptr);
+            let dvm_method = unsafe { DvmMethod::from_ptr(*method_ptr) };
+            self.method_ptrs.insert(String::from(dvm_method.method_name()), method_ptr);
             Some(dvm_method)
         } else {
             None
@@ -1095,7 +1095,7 @@ impl DexContext {
     /// XXX continue here
     pub fn get_analyzed_class_by_hdvmclass(&self, class: &DvmClass) -> Option<&DvmClassAnalysis> {
         let class_ptr = self.class_ptrs
-            .get(&class.class_name)
+            .get(class.class_name())
             .expect("Cannot find raw pointer for class");
 
         // println!("class_ptr {:#?}", *class_ptr);
