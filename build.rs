@@ -18,9 +18,9 @@ fn main() {
         // The input header we would like to generate
         // bindings for.
         .headers([
-            format!("{}include/shuriken/api/C/shuriken_core.h",
-                    env::var("BASE_FOLDER").unwrap().as_str()).as_str(),
             format!("{}include/shuriken/api/C/shuriken_core_data.h",
+                    env::var("BASE_FOLDER").unwrap().as_str()).as_str(),
+            format!("{}include/shuriken/api/C/shuriken_core.h",
                     env::var("BASE_FOLDER").unwrap().as_str()).as_str(),
         ])
         .clang_arg("-std=c++17")
