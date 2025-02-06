@@ -1,3 +1,5 @@
+//! Parser data structs
+
 use std::ffi::CStr;
 use std::slice::from_raw_parts;
 
@@ -7,7 +9,7 @@ use crate::dvm_access_flags::{ DvmAccessFlag, DvmAccessFlagType };
 /// Type alias for Shuriken's `htype_e`
 ///
 /// DEX types of the DVM we have by default fundamental, classes and array
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DexTypes {
     /// Fundamental type (int, float...)
     Fundamental,
@@ -22,7 +24,7 @@ pub enum DexTypes {
 /// Type alias for Shuriken's `hfundamental_e`
 ///
 /// Enum with the basic DEX types
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DexBasicTypes {
     Boolean,
     Byte,
@@ -120,6 +122,36 @@ impl DvmField {
             access_flags
         }
     }
+
+    /// Return a reference to the class name
+    pub fn class_name(&self) -> &str {
+        &self.class_name
+    }
+
+    /// Return a reference to the field name
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Return a reference to the field type
+    pub fn field_type(&self) -> DexTypes {
+        self.field_type
+    }
+
+    /// Return a reference to the fundamental value
+    pub fn fundamental_value(&self) -> DexBasicTypes {
+        self.fundamental_value
+    }
+
+    /// Return a reference to the field type value
+    pub fn type_value(&self) -> &str {
+        &self.type_value
+    }
+
+    /// Return a reference to the access flags
+    pub fn access_flags(&self) -> &[DvmAccessFlag] {
+        &self.access_flags
+    }
 }
 
 /// Type alias for Shuriken's `hdvmmethod_t`
@@ -194,8 +226,43 @@ impl DvmMethod {
         }
     }
 
-    /// Return a reference to the method demangled name
+    /// Return a reference to the class name
+    pub fn class_name(&self) -> &str {
+        &self.class_name
+    }
+
+    /// Return a reference to the method name
     pub fn method_name(&self) -> &str {
+        &self.method_name
+    }
+
+    /// Return a reference to the method prototype
+    pub fn prototype(&self) -> &str {
+        &self.prototype
+    }
+
+    /// Return a reference to the method access flags
+    pub fn access_flags(&self) -> &[DvmAccessFlag] {
+        &self.access_flags
+    }
+
+    /// Return the method's code size
+    pub fn code_size(&self) -> usize {
+        self.code_size
+    }
+
+    /// Return the method's code
+    pub fn code(&self) -> &[u8] {
+        &self.code
+    }
+
+    /// Return a reference to the dalvik name
+    pub fn dalvik_name(&self) -> &str {
+        &self.dalvik_name
+    }
+
+    /// Return a reference to the method demangled name
+    pub fn demangled_name(&self) -> &str {
         &self.demangled_name
     }
 }
@@ -307,5 +374,60 @@ impl DvmClass {
     /// Returns a reference to the class name
     pub fn class_name(&self) -> &str {
         self.class_name.as_str()
+    }
+
+    /// Returns a reference to the super class
+    pub fn super_class(&self) -> &str {
+        &self.super_class
+    }
+
+    /// Returns a reference to the source file
+    pub fn source_file(&self) -> &str {
+        &self.source_file
+    }
+
+    /// Returns a reference to the access flags
+    pub fn access_flags(&self) -> &[DvmAccessFlag] {
+        &self.access_flags
+    }
+
+    /// Returns a reference to the direct methods size
+    pub fn direct_methods_size(&self) -> usize {
+        self.direct_methods_size
+    }
+
+    /// Returns a reference to the direct methods
+    pub fn direct_methods(&self) -> &[DvmMethod] {
+        &self.direct_methods
+    }
+
+    /// Returns a reference to the virtual methods size
+    pub fn virtual_methods_size(&self) -> usize {
+        self.virtual_methods_size
+    }
+
+    /// Returns a reference to the virtual methods
+    pub fn virtual_methods(&self) -> &[DvmMethod] {
+        &self.virtual_methods
+    }
+
+    /// Returns a reference to the instance fields size
+    pub fn instance_fields_size(&self) -> usize {
+        self.instance_fields_size
+    }
+
+    /// Returns a reference to the instance fields
+    pub fn instance_fields(&self) -> &[DvmField] {
+        &self.instance_fields
+    }
+
+    /// Returns a reference to the static fields size
+    pub fn static_fields_size(&self) -> usize {
+        self.static_fields_size
+    }
+
+    /// Returns a reference to the static fields
+    pub fn static_fields(&self) -> &[DvmField] {
+        &self.static_fields
     }
 }
