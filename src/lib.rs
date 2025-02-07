@@ -13,7 +13,6 @@ pub mod dvm_access_flags;
 
 use std::path::Path;
 use std::ffi::{ CStr, CString };
-use std::collections::HashMap;
 
 use crate::parser::{
     DvmMethod,
@@ -22,7 +21,6 @@ use crate::parser::{
 use crate::disassembler::DvmDisassembledMethod;
 use crate::analysis::{
     DvmStringAnalysis,
-    DvmFieldAnalysis,
     DvmMethodAnalysis,
     DvmClassAnalysis
 };
@@ -39,14 +37,7 @@ mod shuriken {
 /// different analysis classes.
 #[derive(Debug)]
 pub struct DexContext {
-    ptr: shuriken::hDexContext,
-
-    class_ptrs: HashMap<String, *mut shuriken::hdvmclass_t>,
-    method_ptrs: HashMap<String, *mut shuriken::hdvmmethod_t>,
-
-    class_analyses: HashMap<String, DvmClassAnalysis>,
-    method_analyses: HashMap<String, DvmMethodAnalysis>,
-    field_analyses: HashMap<String, DvmFieldAnalysis>,
+    ptr: shuriken::hDexContext
 }
 
 // --------------------------- Parser API ---------------------------
@@ -70,14 +61,7 @@ impl DexContext {
 
         let ptr = unsafe { shuriken::parse_dex(c_world) };
 
-        Self {
-            ptr,
-            class_ptrs: HashMap::new(),
-            method_ptrs: HashMap::new(),
-            class_analyses: HashMap::new(),
-            method_analyses: HashMap::new(),
-            field_analyses: HashMap::new(),
-        }
+        Self { ptr }
     }
 
     /// Get the number of strings in the DEX file
@@ -107,43 +91,43 @@ impl DexContext {
     }
 
     /// Get a class structure given an ID
-    pub fn get_class_by_id(&mut self, id: u16) -> Option<DvmClass> {
+    pub fn get_class_by_id(&self, id: u16) -> Option<DvmClass> {
         let dvm_class_ptr = unsafe { shuriken::get_class_by_id(self.ptr, id) };
 
         if ! dvm_class_ptr.is_null() {
-            let dvm_class = DvmClass::from_ptr(unsafe { *dvm_class_ptr });
-            self.class_ptrs.insert(String::from(dvm_class.class_name()), dvm_class_ptr);
-            Some(dvm_class)
+            unsafe {
+                Some(DvmClass::from_ptr(*dvm_class_ptr))
+            }
         } else {
             None
         }
     }
 
     /// Get a class structure given a class name
-    pub fn get_class_by_name(&mut self, class_name: &str) -> Option<DvmClass> {
+    pub fn get_class_by_name(&self, class_name: &str) -> Option<DvmClass> {
         let c_str = CString::new(class_name)
             .expect("CString::new failed");
 
         let class_ptr = unsafe { shuriken::get_class_by_name(self.ptr, c_str.as_ptr()) };
         if ! class_ptr.is_null() {
-            let dvm_class = DvmClass::from_ptr(unsafe { *class_ptr });
-            self.class_ptrs.insert(String::from(dvm_class.class_name()), class_ptr);
-            Some(dvm_class)
+            unsafe {
+                Some(DvmClass::from_ptr(*class_ptr))
+            }
         } else {
             None
         }
     }
 
     /// Get a method structure given a full dalvik name.
-    pub fn get_method_by_name(&mut self, method_name: &str) -> Option<DvmMethod> {
+    pub fn get_method_by_name(&self, method_name: &str) -> Option<DvmMethod> {
         let c_str = CString::new(method_name)
             .expect("CString::new failed");
 
         let method_ptr = unsafe { shuriken::get_method_by_name(self.ptr, c_str.as_ptr()) };
         if ! method_ptr.is_null() {
-            let dvm_method = unsafe { DvmMethod::from_ptr(*method_ptr) };
-            self.method_ptrs.insert(String::from(dvm_method.dalvik_name()), method_ptr);
-            Some(dvm_method)
+            unsafe {
+                Some(DvmMethod::from_ptr(*method_ptr))
+            }
         } else {
             None
         }
@@ -159,7 +143,7 @@ impl DexContext {
     }
 
     /// Get a method structure given a full dalvik name.
-    pub fn get_disassembled_method(&mut self, method_name: &str) -> Option<DvmDisassembledMethod> {
+    pub fn get_disassembled_method(&self, method_name: &str) -> Option<DvmDisassembledMethod> {
         let c_str = CString::new(method_name)
             .expect("CString::new failed");
 
@@ -202,21 +186,7 @@ impl DexContext {
 
     /// Obtain a `DvmClassAnalysis` given a `DvmClass`
     pub fn get_analyzed_class_by_hdvmclass(&self, class: &DvmClass) -> Option<DvmClassAnalysis> {
-        let class_ptr = match self.class_ptrs.get(class.class_name()) {
-            Some(ptr) => ptr,
-            None => return None
-        };
-
-        let class_analysis_ptr = unsafe {
-            shuriken::get_analyzed_class_by_hdvmclass(self.ptr, *class_ptr)
-        };
-
-        match class_analysis_ptr.is_null() {
-            true => None,
-            false => unsafe {
-                Some(DvmClassAnalysis::from_ptr(*class_analysis_ptr))
-            }
-        }
+        self.get_analyzed_class(class.class_name())
     }
 
     /// Obtain a `DvmClassAnalysis` given a class name
@@ -239,16 +209,7 @@ impl DexContext {
 
     /// Obtain one DvmMethodAnalysis given its DvmMethod
     pub fn get_analyzed_method_by_hdvmmethod(&self, method: &DvmMethod ) -> Option<DvmMethodAnalysis> {
-        let method_ptr = match self.method_ptrs.get(method.dalvik_name()) {
-            Some(ptr) => ptr,
-            None => return None
-        };
-
-        let analysis = unsafe {
-            DvmMethodAnalysis::from_ptr(*shuriken::get_analyzed_method_by_hdvmmethod(self.ptr, *method_ptr))
-        };
-
-        Some(analysis)
+        self.get_analyzed_method(method.dalvik_name())
     }
 
     /// Obtain one DvmMethodAnalysis given its full, demangled name
@@ -601,7 +562,7 @@ mod tests {
                     ("type", "Ljava/lang/String;"),
                 ])];
 
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_id(0);
 
             assert!(class.is_some());
@@ -661,7 +622,7 @@ mod tests {
                     ("flags", "2"),
                 ])];
 
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_id(0);
 
             assert!(class.is_some());
@@ -692,7 +653,7 @@ mod tests {
 
         #[test]
         fn test_get_class_by_name() {
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_name("DexParserTest");
 
             assert!(class.is_some());
@@ -704,7 +665,7 @@ mod tests {
 
         #[test]
         fn test_get_method_by_name() {
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let method = context.get_method_by_name("LDexParserTest;->printMessage()V");
 
             assert!(method.is_some());
@@ -834,7 +795,7 @@ mod tests {
                 )
             ]);
 
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
 
             // Check that we get nothing if we have not run `DexContext::disassemble_dex()`
             let dvm_method = context.get_disassembled_method(
@@ -959,7 +920,7 @@ mod tests {
             ]);
 
 
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             context.disassemble_dex();
             context.create_dex_analysis(true);
             context.analyze_classes();
@@ -999,7 +960,7 @@ mod tests {
 
         #[test]
         fn test_get_analyzed_class() {
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             context.disassemble_dex();
             context.create_dex_analysis(true);
             context.analyze_classes();
@@ -1037,7 +998,7 @@ mod tests {
 
         #[test]
         fn test_get_analyzed_method() {
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             context.disassemble_dex();
             context.create_dex_analysis(true);
             context.analyze_classes();
