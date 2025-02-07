@@ -393,11 +393,12 @@ impl ApkContext {
             shuriken::get_disassembled_method_from_apk(self.ptr, method_name.as_ptr())
         };
 
-        if method_ptr.is_null() {
-            return None;
+        match method_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmDisassembledMethod::from_ptr(*method_ptr))
+            }
         }
-
-        unsafe { Some(DvmDisassembledMethod::from_ptr(*method_ptr)) }
     }
 
     // --------------------------- Analysis API ---------------------------
