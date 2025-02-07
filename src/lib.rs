@@ -385,8 +385,19 @@ impl ApkContext {
     // --------------------------- Disassembly API ---------------------------
 
     /// Get a method structure given a full dalvik name.
-    pub fn get_disassembled_method_from_apk(&self, method_name: &str) -> &DvmDisassembledMethod {
-        todo!();
+    pub fn get_disassembled_method_from_apk(&self, method_name: &str) -> Option<DvmDisassembledMethod> {
+        let method_name = CString::new(method_name)
+            .expect("CString::new() failed");
+
+        let method_ptr = unsafe {
+            shuriken::get_disassembled_method_from_apk(self.ptr, method_name.as_ptr())
+        };
+
+        if method_ptr.is_null() {
+            return None;
+        }
+
+        unsafe { Some(DvmDisassembledMethod::from_ptr(*method_ptr)) }
     }
 
     // --------------------------- Analysis API ---------------------------

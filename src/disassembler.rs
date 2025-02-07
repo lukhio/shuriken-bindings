@@ -279,6 +279,22 @@ impl DvmDisassembledMethod {
         }
     }
 
+    /// Create from raw pointer
+    ///
+    /// This is basically a wrapper around [`from_dvmdisassembled_method_t`]
+    ///
+    /// [`from_dvmdisassembled_method_t`]: struct.DvmDisassembledMethod.html#method.from_dvmdisassembled_method_t
+    pub fn from_ptr(ptr: shuriken::dvmdisassembled_method_t) -> Self {
+        // Check if we have a non-null pointer to the `DvmMethod` object
+        if ptr.method_id.is_null() {
+            panic!("DvmMethod pointer is null");
+        }
+
+        let dvm_method = unsafe { DvmMethod::from_ptr(*ptr.method_id) };
+
+        DvmDisassembledMethod::from_dvmdisassembled_method_t(ptr, dvm_method)
+    }
+
     /// Return a reference to the method id
     pub fn method_id(&self) -> &DvmMethod {
         &self.method_id
