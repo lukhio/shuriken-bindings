@@ -207,12 +207,16 @@ impl DexContext {
             None => return None
         };
 
-
-        let analysis = unsafe {
-            DvmClassAnalysis::from_ptr(*shuriken::get_analyzed_class_by_hdvmclass(self.ptr, *class_ptr))
+        let class_analysis_ptr = unsafe {
+            shuriken::get_analyzed_class_by_hdvmclass(self.ptr, *class_ptr)
         };
 
-        Some(analysis)
+        match class_analysis_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmClassAnalysis::from_ptr(*class_analysis_ptr))
+            }
+        }
     }
 
     /// Obtain a `DvmClassAnalysis` given a class name
