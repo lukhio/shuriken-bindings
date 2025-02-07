@@ -352,7 +352,9 @@ impl ApkContext {
 
         match ptr.is_null() {
             true => None,
-            false => unsafe { Some(DvmClass::from_ptr(*ptr)) }
+            false => unsafe {
+                Some(DvmClass::from_ptr(*ptr))
+            }
         }
     }
 
@@ -408,8 +410,8 @@ impl ApkContext {
     // --------------------------- Analysis API ---------------------------
 
     /// Obtain one `DvmClassAnalysis` given its `DvmClass`
-    pub fn get_analyzed_class_by_hdvmclass_from_apk(&self, class: DvmClass) -> DvmClassAnalysis {
-        todo!();
+    pub fn get_analyzed_class_by_hdvmclass_from_apk(&self, class: &DvmClass) -> Option<DvmClassAnalysis> {
+        self.get_analyzed_class_from_apk(class.class_name())
     }
 
     /// Obtain one `DvmClassAnalysis` given its name
@@ -430,13 +432,25 @@ impl ApkContext {
     }
 
     /// Obtain one `DvmMethodAnalysis` given its `DvmMethodAnalysis`
-    pub fn get_analyzed_method_by_hdvmmethod_from_apk(&self, method: DvmMethod) -> DvmMethodAnalysis {
-        todo!();
+    pub fn get_analyzed_method_by_hdvmmethod_from_apk(&self, method: &DvmMethod) -> Option<DvmMethodAnalysis> {
+        self.get_analyzed_method_from_apk(method.dalvik_name())
     }
 
     /// Obtain one `DvmMethodAnalysis` given its name
-    pub fn get_analyzed_method_from_apk(&self, method_full_name: &str) -> DvmMethodAnalysis {
-        todo!();
+    pub fn get_analyzed_method_from_apk(&self, method_full_name: &str) -> Option<DvmMethodAnalysis> {
+        let method_name = CString::new(method_full_name)
+            .expect("CString::new() failed");
+
+        let method_ptr = unsafe {
+            shuriken::get_analyzed_method_from_apk(self.ptr, method_name.as_ptr())
+        };
+
+        match method_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmMethodAnalysis::from_ptr(*method_ptr))
+            }
+        }
     }
 
     /// Obtain the number of `DvmMethodAnalysis` objects in the APK
