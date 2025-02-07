@@ -416,17 +416,40 @@ impl ApkContext {
 
     /// Obtain the number of `DvmMethodAnalysis` objects in the APK
     pub fn get_number_of_method_analysis_objects(&self) -> usize {
-        todo!();
+        unsafe {
+            shuriken::get_number_of_methodanalysis_objects(self.ptr)
+        }
     }
 
     /// Obtain a `DvmMethodAnalysis` object from the APK by idx
-    pub fn get_analyzed_method_by_idx(&self, idx: usize) -> DvmMethodAnalysis {
-        todo!();
+    pub fn get_analyzed_method_by_idx(&self, idx: usize) -> Option<DvmMethodAnalysis> {
+        let method_ptr = unsafe {
+            shuriken::get_analyzed_method_by_idx(self.ptr, idx)
+        };
+
+        match method_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmMethodAnalysis::from_ptr(*method_ptr))
+            }
+        }
     }
 
     /// Obtain a `DvmStringAnalysis` given a string
-    pub fn get_analyzed_string_from_apk(&self, string: &str) -> DvmStringAnalysis {
-        todo!();
+    pub fn get_analyzed_string_from_apk(&self, string: &str) -> Option<DvmStringAnalysis> {
+        let string = CString::new(string)
+            .expect("CString::new() failed");
+
+        let analysis_ptr = unsafe {
+            shuriken::get_analyzed_string_from_apk(self.ptr, string.as_ptr())
+        };
+
+        match analysis_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmStringAnalysis::from_ptr(*analysis_ptr))
+            }
+        }
     }
 }
 
