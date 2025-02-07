@@ -409,8 +409,20 @@ impl ApkContext {
     }
 
     /// Obtain one `DvmClassAnalysis` given its name
-    pub fn get_analyzed_class_from_apk(&self, class_name: &str) -> DvmClassAnalysis {
-        todo!();
+    pub fn get_analyzed_class_from_apk(&self, class_name: &str) -> Option<DvmClassAnalysis> {
+        let class_name = CString::new(class_name)
+            .expect("CString::new() failed");
+
+        let class_ptr = unsafe {
+            shuriken::get_analyzed_class_from_apk(self.ptr, class_name.as_ptr())
+        };
+
+        match class_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmClassAnalysis::from_ptr(*class_ptr))
+            }
+        }
     }
 
     /// Obtain one `DvmMethodAnalysis` given its `DvmMethodAnalysis`
