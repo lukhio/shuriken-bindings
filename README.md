@@ -1,5 +1,9 @@
 # shuriken-bindings
 
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/lukhio/shuriken-bindings/ci.yml?branch=main&style=for-the-badge)
+![Crates.io Version](https://img.shields.io/crates/v/shuriken-bindings?style=for-the-badge)
+![docs.rs](https://img.shields.io/docsrs/shuriken-bindings?style=for-the-badge)
+
 Safe Rust bindings for the [Shuriken bytecode analyzer](https://github.com/Shuriken-Group/Shuriken-Analyzer).
 
 ## Usage
