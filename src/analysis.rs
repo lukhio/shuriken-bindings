@@ -564,6 +564,30 @@ pub struct DvmStringAnalysis {
     xreffrom: Vec<DvmClassMethodIdx>,
 }
 
+impl DvmStringAnalysis {
+    pub fn from_ptr(ptr: shuriken::hdvmstringanalysis_t) -> Self {
+        let value = unsafe {
+            CStr::from_ptr(ptr.value)
+                .to_str()
+                .expect("Error: string is not valid UTF-8")
+                .to_string()
+        };
+
+        let xreffrom = unsafe {
+            from_raw_parts(ptr.xreffrom, ptr.n_of_xreffrom)
+                .iter()
+                .map(|xref| DvmClassMethodIdx::from_ptr(*xref))
+                .collect::<Vec<DvmClassMethodIdx>>()
+        };
+
+        Self {
+            value,
+            n_of_xreffrom: ptr.n_of_xreffrom,
+            xreffrom
+        }
+    }
+}
+
 /// Type alias for Shuriken's `hdvmmethodanalysis_t`
 ///
 /// Structure to keep information about the method analysis

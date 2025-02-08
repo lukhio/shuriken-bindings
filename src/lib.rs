@@ -13,7 +13,6 @@ pub mod dvm_access_flags;
 
 use std::path::Path;
 use std::ffi::{ CStr, CString };
-use std::collections::HashMap;
 
 use crate::parser::{
     DvmMethod,
@@ -22,7 +21,6 @@ use crate::parser::{
 use crate::disassembler::DvmDisassembledMethod;
 use crate::analysis::{
     DvmStringAnalysis,
-    DvmFieldAnalysis,
     DvmMethodAnalysis,
     DvmClassAnalysis
 };
@@ -39,19 +37,8 @@ mod shuriken {
 /// different analysis classes.
 #[derive(Debug)]
 pub struct DexContext {
-    ptr: shuriken::hDexContext,
-
-    class_ptrs: HashMap<String, *mut shuriken::hdvmclass_t>,
-    method_ptrs: HashMap<String, *mut shuriken::hdvmmethod_t>,
-
-    class_analyses: HashMap<String, DvmClassAnalysis>,
-    method_analyses: HashMap<String, DvmMethodAnalysis>,
-    field_analyses: HashMap<String, DvmFieldAnalysis>,
+    ptr: shuriken::hDexContext
 }
-
-/// Type alias for Shuriken's `hApkContext`
-#[derive(Debug)]
-pub struct ApkContext(shuriken::hApkContext);
 
 // --------------------------- Parser API ---------------------------
 
@@ -74,14 +61,7 @@ impl DexContext {
 
         let ptr = unsafe { shuriken::parse_dex(c_world) };
 
-        Self {
-            ptr,
-            class_ptrs: HashMap::new(),
-            method_ptrs: HashMap::new(),
-            class_analyses: HashMap::new(),
-            method_analyses: HashMap::new(),
-            field_analyses: HashMap::new(),
-        }
+        Self { ptr }
     }
 
     /// Get the number of strings in the DEX file
@@ -111,43 +91,43 @@ impl DexContext {
     }
 
     /// Get a class structure given an ID
-    pub fn get_class_by_id(&mut self, id: u16) -> Option<DvmClass> {
+    pub fn get_class_by_id(&self, id: u16) -> Option<DvmClass> {
         let dvm_class_ptr = unsafe { shuriken::get_class_by_id(self.ptr, id) };
 
         if ! dvm_class_ptr.is_null() {
-            let dvm_class = DvmClass::from_ptr(unsafe { *dvm_class_ptr });
-            self.class_ptrs.insert(String::from(dvm_class.class_name()), dvm_class_ptr);
-            Some(dvm_class)
+            unsafe {
+                Some(DvmClass::from_ptr(*dvm_class_ptr))
+            }
         } else {
             None
         }
     }
 
     /// Get a class structure given a class name
-    pub fn get_class_by_name(&mut self, class_name: &str) -> Option<DvmClass> {
+    pub fn get_class_by_name(&self, class_name: &str) -> Option<DvmClass> {
         let c_str = CString::new(class_name)
             .expect("CString::new failed");
 
         let class_ptr = unsafe { shuriken::get_class_by_name(self.ptr, c_str.as_ptr()) };
         if ! class_ptr.is_null() {
-            let dvm_class = DvmClass::from_ptr(unsafe { *class_ptr });
-            self.class_ptrs.insert(String::from(dvm_class.class_name()), class_ptr);
-            Some(dvm_class)
+            unsafe {
+                Some(DvmClass::from_ptr(*class_ptr))
+            }
         } else {
             None
         }
     }
 
     /// Get a method structure given a full dalvik name.
-    pub fn get_method_by_name(&mut self, method_name: &str) -> Option<DvmMethod> {
+    pub fn get_method_by_name(&self, method_name: &str) -> Option<DvmMethod> {
         let c_str = CString::new(method_name)
             .expect("CString::new failed");
 
         let method_ptr = unsafe { shuriken::get_method_by_name(self.ptr, c_str.as_ptr()) };
         if ! method_ptr.is_null() {
-            let dvm_method = unsafe { DvmMethod::from_ptr(*method_ptr) };
-            self.method_ptrs.insert(String::from(dvm_method.dalvik_name()), method_ptr);
-            Some(dvm_method)
+            unsafe {
+                Some(DvmMethod::from_ptr(*method_ptr))
+            }
         } else {
             None
         }
@@ -163,7 +143,7 @@ impl DexContext {
     }
 
     /// Get a method structure given a full dalvik name.
-    pub fn get_disassembled_method(&mut self, method_name: &str) -> Option<DvmDisassembledMethod> {
+    pub fn get_disassembled_method(&self, method_name: &str) -> Option<DvmDisassembledMethod> {
         let c_str = CString::new(method_name)
             .expect("CString::new failed");
 
@@ -206,17 +186,7 @@ impl DexContext {
 
     /// Obtain a `DvmClassAnalysis` given a `DvmClass`
     pub fn get_analyzed_class_by_hdvmclass(&self, class: &DvmClass) -> Option<DvmClassAnalysis> {
-        let class_ptr = match self.class_ptrs.get(class.class_name()) {
-            Some(ptr) => ptr,
-            None => return None
-        };
-
-
-        let analysis = unsafe {
-            DvmClassAnalysis::from_ptr(*shuriken::get_analyzed_class_by_hdvmclass(self.ptr, *class_ptr))
-        };
-
-        Some(analysis)
+        self.get_analyzed_class(class.class_name())
     }
 
     /// Obtain a `DvmClassAnalysis` given a class name
@@ -239,16 +209,7 @@ impl DexContext {
 
     /// Obtain one DvmMethodAnalysis given its DvmMethod
     pub fn get_analyzed_method_by_hdvmmethod(&self, method: &DvmMethod ) -> Option<DvmMethodAnalysis> {
-        let method_ptr = match self.method_ptrs.get(method.dalvik_name()) {
-            Some(ptr) => ptr,
-            None => return None
-        };
-
-        let analysis = unsafe {
-            DvmMethodAnalysis::from_ptr(*shuriken::get_analyzed_method_by_hdvmmethod(self.ptr, *method_ptr))
-        };
-
-        Some(analysis)
+        self.get_analyzed_method(method.dalvik_name())
     }
 
     /// Obtain one DvmMethodAnalysis given its full, demangled name
@@ -273,96 +234,222 @@ impl DexContext {
 // C - APK part of the CORE API from ShurikenLib
 // --------------------------- Parser API ---------------------------
 
+/// Type alias for Shuriken's `hApkContext`
+#[derive(Debug)]
+pub struct ApkContext {
+    ptr: shuriken::hApkContext
+}
+
+impl Drop for ApkContext {
+    /// Since the context object use dynamic memory this method will properly destroy the object
+    fn drop(&mut self) {
+        unsafe {
+            shuriken::destroy_apk(self.ptr);
+        }
+    }
+}
+
 impl ApkContext {
     /// main method from the APK Core API it parses the APK file and it retrieves a context object
-    pub fn parse_apk(filepath: String, create_xref: bool) -> Self {
-        todo!();
-    }
+    pub fn parse_apk(filepath: &Path, create_xrefs: bool) -> Self {
+        let xrefs = if create_xrefs {
+            1
+        } else {
+            0
+        };
 
-    /// Since the context object use dynamic memory this method will properly destroy the object
-    ///
-    /// TODO: implement using `Drop` instead
-    pub fn destroy_apk(context: ApkContext) {
-        todo!();
+        let c_str = CString::new(filepath.to_path_buf().into_os_string().into_string().unwrap()).unwrap();
+
+        let ptr = unsafe {
+            shuriken::parse_apk(c_str.as_ptr(), xrefs)
+        };
+
+        Self { ptr }
     }
 
     /// Get the number of DEX files in an APK
     ///
     /// APKs may contain multiple DEX files. This function retrieve the number of DEX files in an APK.
     pub fn get_number_of_dex_files(&self) -> usize {
-        todo!();
+        unsafe { shuriken::get_number_of_dex_files(self.ptr) as usize }
     }
 
     /// Given an index, retrieve the name of one of the DEX file
-    pub fn get_dex_file_by_index(&self, idx: usize) -> String {
-        todo!();
+    pub fn get_dex_file_by_index(&self, idx: usize) -> Option<String> {
+        let str_ptr = unsafe { shuriken::get_dex_file_by_index(self.ptr, idx as u32) };
+
+        match str_ptr.is_null() {
+            true => None,
+            false => if let Ok(string) = unsafe { CStr::from_ptr(str_ptr).to_str() } {
+                Some(string.to_owned())
+            } else {
+                None
+            }
+        }
     }
 
-    /// Get the number of classes in an APK
+    /// Get the number of classes in a DEX file
     ///
     /// Every DEX file contains a number of classes. This function retrieves the total number of
-    /// classes in an APK
-    pub fn get_number_of_classes_for_dex_file(&self, dex_file: &str) -> usize {
-        todo!();
+    /// classes in a given DEX file
+    pub fn get_number_of_classes_from_dex(&self, dex_file: &str) -> Option<usize> {
+        let dex_name = CString::new(dex_file)
+            .expect("CString::new() failed");
+
+        match unsafe { shuriken::get_number_of_classes_for_dex_file(self.ptr, dex_name.as_ptr()) } {
+            -1 => None,
+            nb => Some(nb as usize)
+        }
     }
 
     /// Retrieve one of the `DvmClass` from a DEX file
-    pub fn get_hdvmclass_from_dex_by_index(&self, dex_file: &str, idx: usize) -> &DvmClass {
-        todo!();
+    pub fn get_hdvmclass_from_dex_by_index(&self, dex_file: &str, idx: usize) -> Option<DvmClass> {
+        let dex_name = CString::new(dex_file)
+            .expect("CString::new() failed");
+
+        let ptr = unsafe {
+            shuriken::get_hdvmclass_from_dex_by_index(self.ptr, dex_name.as_ptr(), idx as u32)
+        };
+
+        match ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmClass::from_ptr(*ptr))
+            }
+        }
     }
 
     /// Retrieve the number of strings from a given DEX
-    pub fn get_number_of_strings_from_dex(&self, dex_file: &str) -> usize {
-        todo!();
+    pub fn get_number_of_strings_from_dex(&self, dex_file: &str) -> Option<usize> {
+        let dex_name = CString::new(dex_file)
+            .expect("CString::new() failed");
+
+        match unsafe { shuriken::get_number_of_strings_from_dex(self.ptr, dex_name.as_ptr()) } {
+            -1 => None,
+            nb => Some(nb as usize)
+        }
     }
 
     /// Get a string from a DEX by its index
-    pub fn get_string_by_id_from_dex(&self, dex_file: &str, idx: usize) -> &str {
-        todo!();
+    pub fn get_string_by_id_from_dex(&self, dex_file: &str, idx: usize) -> Option<String> {
+        let dex_name = CString::new(dex_file)
+            .expect("CString::new() failed");
+
+        let str_ptr = unsafe {
+            shuriken::get_string_by_id_from_dex(self.ptr, dex_name.as_ptr(), idx as u32)
+        };
+
+        match str_ptr.is_null() {
+            true => None,
+            false => if let Ok(string) = unsafe { CStr::from_ptr(str_ptr).to_str() } {
+                Some(string.to_owned())
+            } else {
+                None
+            }
+        }
     }
 
     // --------------------------- Disassembly API ---------------------------
 
     /// Get a method structure given a full dalvik name.
-    pub fn get_disassembled_method_from_apk(&self, method_name: &str) -> &DvmDisassembledMethod {
-        todo!();
+    pub fn get_disassembled_method_from_apk(&self, method_name: &str) -> Option<DvmDisassembledMethod> {
+        let method_name = CString::new(method_name)
+            .expect("CString::new() failed");
+
+        let method_ptr = unsafe {
+            shuriken::get_disassembled_method_from_apk(self.ptr, method_name.as_ptr())
+        };
+
+        match method_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmDisassembledMethod::from_ptr(*method_ptr))
+            }
+        }
     }
 
     // --------------------------- Analysis API ---------------------------
 
     /// Obtain one `DvmClassAnalysis` given its `DvmClass`
-    pub fn get_analyzed_class_by_hdvmclass_from_apk(&self, class: DvmClass) -> DvmClassAnalysis {
-        todo!();
+    pub fn get_analyzed_class_by_hdvmclass_from_apk(&self, class: &DvmClass) -> Option<DvmClassAnalysis> {
+        self.get_analyzed_class_from_apk(class.class_name())
     }
 
     /// Obtain one `DvmClassAnalysis` given its name
-    pub fn get_analyzed_class_from_apk(&self, class_name: &str) -> DvmClassAnalysis {
-        todo!();
+    pub fn get_analyzed_class_from_apk(&self, class_name: &str) -> Option<DvmClassAnalysis> {
+        let class_name = CString::new(class_name)
+            .expect("CString::new() failed");
+
+        let class_ptr = unsafe {
+            shuriken::get_analyzed_class_from_apk(self.ptr, class_name.as_ptr())
+        };
+
+        match class_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmClassAnalysis::from_ptr(*class_ptr))
+            }
+        }
     }
 
     /// Obtain one `DvmMethodAnalysis` given its `DvmMethodAnalysis`
-    pub fn get_analyzed_method_by_hdvmmethod_from_apk(&self, method: DvmMethod) -> DvmMethodAnalysis {
-        todo!();
+    pub fn get_analyzed_method_by_hdvmmethod_from_apk(&self, method: &DvmMethod) -> Option<DvmMethodAnalysis> {
+        self.get_analyzed_method_from_apk(method.dalvik_name())
     }
 
     /// Obtain one `DvmMethodAnalysis` given its name
-    pub fn get_analyzed_method_from_apk(&self, method_full_name: &str) -> DvmMethodAnalysis {
-        todo!();
+    pub fn get_analyzed_method_from_apk(&self, method_full_name: &str) -> Option<DvmMethodAnalysis> {
+        let method_name = CString::new(method_full_name)
+            .expect("CString::new() failed");
+
+        let method_ptr = unsafe {
+            shuriken::get_analyzed_method_from_apk(self.ptr, method_name.as_ptr())
+        };
+
+        match method_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmMethodAnalysis::from_ptr(*method_ptr))
+            }
+        }
     }
 
     /// Obtain the number of `DvmMethodAnalysis` objects in the APK
     pub fn get_number_of_method_analysis_objects(&self) -> usize {
-        todo!();
+        unsafe {
+            shuriken::get_number_of_methodanalysis_objects(self.ptr)
+        }
     }
 
     /// Obtain a `DvmMethodAnalysis` object from the APK by idx
-    pub fn get_analyzed_method_by_idx(&self, idx: usize) -> DvmMethodAnalysis {
-        todo!();
+    pub fn get_analyzed_method_by_idx(&self, idx: usize) -> Option<DvmMethodAnalysis> {
+        let method_ptr = unsafe {
+            shuriken::get_analyzed_method_by_idx(self.ptr, idx)
+        };
+
+        match method_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmMethodAnalysis::from_ptr(*method_ptr))
+            }
+        }
     }
 
     /// Obtain a `DvmStringAnalysis` given a string
-    pub fn get_analyzed_string_from_apk(&self, string: &str) -> DvmStringAnalysis {
-        todo!();
+    pub fn get_analyzed_string_from_apk(&self, string: &str) -> Option<DvmStringAnalysis> {
+        let string = CString::new(string)
+            .expect("CString::new() failed");
+
+        let analysis_ptr = unsafe {
+            shuriken::get_analyzed_string_from_apk(self.ptr, string.as_ptr())
+        };
+
+        match analysis_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmStringAnalysis::from_ptr(*analysis_ptr))
+            }
+        }
     }
 }
 
@@ -498,7 +585,7 @@ mod tests {
                     ("type", "Ljava/lang/String;"),
                 ])];
 
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_id(0);
 
             assert!(class.is_some());
@@ -558,7 +645,7 @@ mod tests {
                     ("flags", "2"),
                 ])];
 
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_id(0);
 
             assert!(class.is_some());
@@ -589,7 +676,7 @@ mod tests {
 
         #[test]
         fn test_get_class_by_name() {
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let class = context.get_class_by_name("DexParserTest");
 
             assert!(class.is_some());
@@ -601,7 +688,7 @@ mod tests {
 
         #[test]
         fn test_get_method_by_name() {
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             let method = context.get_method_by_name("LDexParserTest;->printMessage()V");
 
             assert!(method.is_some());
@@ -731,7 +818,7 @@ mod tests {
                 )
             ]);
 
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
 
             // Check that we get nothing if we have not run `DexContext::disassemble_dex()`
             let dvm_method = context.get_disassembled_method(
@@ -856,7 +943,7 @@ mod tests {
             ]);
 
 
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             context.disassemble_dex();
             context.create_dex_analysis(true);
             context.analyze_classes();
@@ -896,7 +983,7 @@ mod tests {
 
         #[test]
         fn test_get_analyzed_class() {
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             context.disassemble_dex();
             context.create_dex_analysis(true);
             context.analyze_classes();
@@ -934,7 +1021,7 @@ mod tests {
 
         #[test]
         fn test_get_analyzed_method() {
-            let mut context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
+            let context = DexContext::parse_dex(&PathBuf::from("test_files/DexParserTest.dex"));
             context.disassemble_dex();
             context.create_dex_analysis(true);
             context.analyze_classes();
