@@ -13,8 +13,7 @@ fn main() {
 
     // Do not generate the bindings if running in the docs.rs environment
     // Since this environment does not have access to Shuriken this fails
-    #[cfg(not(docsrs))]
-    {
+    if std::env::var("DOCS_RS").is_err() {
         // The bindgen::Builder is the main entry point
         // to bindgen, and lets you build up options for
         // the resulting bindings.
