@@ -13,3 +13,6 @@ readme = "README.md"
 
 [build-dependencies]
 bindgen = "0.71.1"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
