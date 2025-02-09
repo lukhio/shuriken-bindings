@@ -2,18 +2,18 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    // Tell cargo to look for shared libraries in the specified directory
-    println!("cargo:rustc-link-search={}", env::var("BASE_FOLDER").unwrap().as_str());
-
-    // Tell cargo where to look for the shared object when running the program
-    println!("cargo:rustc-env=$LD_LIBRARY_PATH:LD_LIBRARY_PATH={}", env::var("BASE_FOLDER").unwrap().as_str());
-
-    // Tell cargo to tell rustc to link the shuriken lib
-    println!("cargo:rustc-link-lib=shuriken");
-
     // Do not generate the bindings if running in the docs.rs environment
     // Since this environment does not have access to Shuriken this fails
     if std::env::var("DOCS_RS").is_err() {
+        // Tell cargo to look for shared libraries in the specified directory
+        println!("cargo:rustc-link-search={}", env::var("BASE_FOLDER").unwrap().as_str());
+
+        // Tell cargo where to look for the shared object when running the program
+        println!("cargo:rustc-env=$LD_LIBRARY_PATH:LD_LIBRARY_PATH={}", env::var("BASE_FOLDER").unwrap().as_str());
+
+        // Tell cargo to tell rustc to link the shuriken lib
+        println!("cargo:rustc-link-lib=shuriken");
+
         // The bindgen::Builder is the main entry point
         // to bindgen, and lets you build up options for
         // the resulting bindings.

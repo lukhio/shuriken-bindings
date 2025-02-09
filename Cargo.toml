@@ -1,6 +1,6 @@
 [package]
 name = "shuriken-bindings"
-version = "1.0.1"
+version = "1.0.2"
 authors = ["Julien Gamba <julien@jgamba.eu>"]
 edition = "2021"
 license = "Apache-2.0"
