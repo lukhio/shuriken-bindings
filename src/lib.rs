@@ -25,10 +25,13 @@ use crate::analysis::{
     DvmClassAnalysis
 };
 
-
 mod shuriken {
-    #![allow(dead_code)]
+    #[cfg(not(docsrs))]
     include!(concat!(env!("OUT_DIR"), "/shuriken_core.rs"));
+
+    // Include pre-generated bindings if building on docs.rs
+    #[cfg(docsrs)]
+    include!(".docs.rs/shuriken_core.rs");
 }
 
 /// Type alias for Shuriken's `hDexContext`
