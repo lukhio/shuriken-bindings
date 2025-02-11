@@ -38,6 +38,59 @@ pub enum DexBasicTypes {
     FundamentalNone = 99
 }
 
+/// Type alias for Shuriken's `dexheader_t`
+///
+/// Structure which contains the information from the header of a DEX file
+#[derive(Debug)]
+pub struct DvmHeader {
+    /// Magic bytes from dex, different values are possible
+    magic: [u8; 8],
+    /// Checksum to see if file is correct
+    checksum: u32,
+    /// Signature of dex
+    signature: [u8; 20],
+    /// Current file size
+    file_size: u32,
+    /// Size of this header
+    header_size: u32,
+    /// Type of endianess of the file
+    endian_tag: u32,
+    /// Size of the link section, or 0 if this file isn't statically linked
+    link_size: u32,
+    /// Offset from the start of the file to the link section
+    link_off: u32,
+    /// Offset from the start of the file to the map item
+    map_off: u32,
+    /// Number of DexStrings
+    string_ids_size: u32,
+    /// Offset of the DexStrings
+    string_ids_off: u32,
+    /// Number of DexTypes
+    type_ids_size: u32,
+    /// Offset of the DexTypes
+    type_ids_off: u32,
+    /// Number of prototypes
+    proto_ids_size: u32,
+    /// Offset of the prototypes
+    proto_ids_off: u32,
+    /// Number of fields
+    field_ids_size: u32,
+    /// Offset of the fields
+    field_ids_off: u32,
+    /// Number of methods
+    method_ids_size: u32,
+    /// Offset of the methods
+    method_ids_off: u32,
+    /// Number of class definitions
+    class_defs_size: u32,
+    /// Offset of the class definitions
+    class_defs_off: u32,
+    /// Data area, containing all the support data for the tables listed above
+    data_size: u32,
+    /// Data offset
+    data_off: u32,
+}
+
 /// Type alias for Shuriken's `hdvmfield_t`
 ///
 /// Structure which keeps information from a field this can be accessed from the class data
