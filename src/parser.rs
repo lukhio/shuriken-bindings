@@ -91,6 +91,37 @@ pub struct DvmHeader {
     data_off: u32,
 }
 
+impl DvmHeader {
+    /// Convert an `dexheader_t` into a `DvmHeader`
+    pub fn from_ptr(ptr: shuriken::dexheader_t) -> Self {
+        DvmHeader {
+            magic: ptr.magic,
+            checksum: ptr.checksum as u32,
+            signature: ptr.signature,
+            file_size: ptr.file_size,
+            header_size: ptr.header_size,
+            endian_tag: ptr.endian_tag,
+            link_size: ptr.link_size,
+            link_off: ptr.link_off,
+            map_off: ptr.map_off,
+            string_ids_size: ptr.string_ids_size,
+            string_ids_off: ptr.string_ids_off,
+            type_ids_size: ptr.type_ids_size,
+            type_ids_off: ptr.type_ids_off,
+            proto_ids_size: ptr.proto_ids_size,
+            proto_ids_off: ptr.proto_ids_off,
+            field_ids_size: ptr.field_ids_size,
+            field_ids_off: ptr.field_ids_off,
+            method_ids_size: ptr.method_ids_size,
+            method_ids_off: ptr.method_ids_off,
+            class_defs_size: ptr.class_defs_size,
+            class_defs_off: ptr.class_defs_off,
+            data_size: ptr.data_size,
+            data_off: ptr.data_off,
+        }
+    }
+}
+
 /// Type alias for Shuriken's `hdvmfield_t`
 ///
 /// Structure which keeps information from a field this can be accessed from the class data
