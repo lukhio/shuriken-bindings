@@ -15,6 +15,7 @@ use std::path::Path;
 use std::ffi::{ CStr, CString };
 
 use crate::parser::{
+    DvmHeader,
     DvmMethod,
     DvmClass
 };
@@ -71,6 +72,20 @@ impl DexContext {
     pub fn get_number_of_strings(&self) -> usize {
         unsafe {
             shuriken::get_number_of_strings(self.ptr)
+        }
+    }
+
+    /// Get the DEX header
+    pub fn get_header(&self) -> Option<DvmHeader> {
+        let header_ptr = unsafe {
+            shuriken::get_header(self.ptr)
+        };
+
+        match header_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmHeader::from_ptr(*header_ptr))
+            }
         }
     }
 
