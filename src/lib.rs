@@ -501,6 +501,36 @@ mod tests {
         }
 
         #[test]
+        fn test_dex_header() {
+            let path = PathBuf::from("test_files/DexParserTest.dex");
+            let context = DexContext::parse_dex(&path);
+
+            let header = context.get_header();
+            assert!(header.is_some());
+            let header = header.unwrap();
+
+            assert_eq!(header.magic(), &[0x64, 0x65, 0x78, 0x0a, 0x30, 0x33, 0x35, 0x00]);
+            assert_eq!(header.checksum(), 0xe4eefae3);
+            assert_eq!(header.file_size(), 1624);
+            assert_eq!(header.header_size(), 112);
+
+            assert_eq!(header.link_size(), 0);
+            assert_eq!(header.link_off(), 0);
+            assert_eq!(header.string_ids_size(), 33);
+            assert_eq!(header.string_ids_off(), 112);
+            assert_eq!(header.type_ids_size(), 9);
+            assert_eq!(header.type_ids_off(), 244);
+            assert_eq!(header.proto_ids_size(), 7);
+            assert_eq!(header.proto_ids_off(), 280);
+            assert_eq!(header.field_ids_size(), 3);
+            assert_eq!(header.field_ids_off(), 364);
+            assert_eq!(header.method_ids_size(), 10);
+            assert_eq!(header.method_ids_off(), 388);
+            assert_eq!(header.class_defs_size(), 1);
+            assert_eq!(header.class_defs_off(), 468);
+        }
+
+        #[test]
         fn test_nb_strings() {
             use std::collections::HashMap;
 
