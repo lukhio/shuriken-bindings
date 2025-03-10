@@ -120,6 +120,121 @@ impl DvmHeader {
             data_off: ptr.data_off,
         }
     }
+
+    /// Returns a reference to the magic bytes from DEX
+    pub fn magic(&self) -> &[u8; 8] {
+        &self.magic
+    }
+
+    /// Returns a reference to the checksum
+    pub fn checksum(&self) -> u32 {
+        self.checksum
+    }
+
+    /// Returns a reference to the signature of DEX
+    pub fn signature(&self) -> &[u8; 20] {
+        &self.signature
+    }
+
+    /// Returns the current file size
+    pub fn file_size(&self) -> u32 {
+        self.file_size
+    }
+
+    /// Returns the size of this header
+    pub fn header_size(&self) -> u32 {
+        self.header_size
+    }
+
+    /// Returns the type of endianess of the file
+    pub fn endian_tag(&self) -> u32 {
+        self.endian_tag
+    }
+
+    /// Returns the size of the link section, or 0 if this file isn't statically linked
+    pub fn link_size(&self) -> u32 {
+        self.link_size
+    }
+
+    /// Returns the offset from the start of the file to the link section
+    pub fn link_off(&self) -> u32 {
+        self.link_off
+    }
+
+    /// Returns the offset from the start of the file to the map item
+    pub fn map_off(&self) -> u32 {
+        self.map_off
+    }
+
+    /// Returns the number of DexStrings
+    pub fn string_ids_size(&self) -> u32 {
+        self.string_ids_size
+    }
+
+    /// Returns the offset of the DexStrings
+    pub fn string_ids_off(&self) -> u32 {
+        self.string_ids_off
+    }
+
+    /// Returns the number of DexTypes
+    pub fn type_ids_size(&self) -> u32 {
+        self.type_ids_size
+    }
+
+    /// Returns the offset of the DexTypes
+    pub fn type_ids_off(&self) -> u32 {
+        self.type_ids_off
+    }
+
+    /// Returns the number of prototypes
+    pub fn proto_ids_size(&self) -> u32 {
+        self.proto_ids_size
+    }
+
+    /// Returns the offset of the prototypes
+    pub fn proto_ids_off(&self) -> u32 {
+        self.proto_ids_off
+    }
+
+    /// Returns the number of fields
+    pub fn field_ids_size(&self) -> u32 {
+        self.field_ids_size
+    }
+
+    /// Returns the offset of the fields
+    pub fn field_ids_off(&self) -> u32 {
+        self.field_ids_off
+    }
+
+    /// Returns the number of methods
+    pub fn method_ids_size(&self) -> u32 {
+        self.method_ids_size
+    }
+
+    /// Returns the offset of the methods
+    pub fn method_ids_off(&self) -> u32 {
+        self.method_ids_off
+    }
+
+    /// Returns the number of class definitions
+    pub fn class_defs_size(&self) -> u32 {
+        self.class_defs_size
+    }
+
+    /// Returns the offset of the class definitions
+    pub fn class_defs_off(&self) -> u32 {
+        self.class_defs_off
+    }
+
+    /// Returns the data area, containing all the support data for the tables listed above
+    pub fn data_size(&self) -> u32 {
+        self.data_size
+    }
+
+    /// Returns the data offset
+    pub fn data_off(&self) -> u32 {
+        self.data_off
+    }
 }
 
 /// Type alias for Shuriken's `hdvmfield_t`
