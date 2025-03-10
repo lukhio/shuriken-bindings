@@ -337,6 +337,23 @@ impl ApkContext {
         }
     }
 
+    /// Get the header of a given DEX file
+    pub fn get_header_from_dex(&self, dex_file: &str) -> Option<DvmHeader> {
+        let dex_name = CString::new(dex_file)
+            .expect("CString::new() failed");
+
+        let header_ptr = unsafe {
+            shuriken::get_header_for_dex_file(self.ptr, dex_name.as_ptr())
+        };
+
+        match header_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmHeader::from_ptr(*header_ptr))
+            }
+        }
+    }
+
     /// Retrieve the number of strings from a given DEX
     pub fn get_number_of_strings_from_dex(&self, dex_file: &str) -> Option<usize> {
         let dex_name = CString::new(dex_file)
