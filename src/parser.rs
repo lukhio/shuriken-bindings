@@ -96,7 +96,7 @@ impl DvmHeader {
     pub fn from_ptr(ptr: shuriken::dexheader_t) -> Self {
         DvmHeader {
             magic: ptr.magic,
-            checksum: ptr.checksum as u32,
+            checksum: ptr.checksum,
             signature: ptr.signature,
             file_size: ptr.file_size,
             header_size: ptr.header_size,
