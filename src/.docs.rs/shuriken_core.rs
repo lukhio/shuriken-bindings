@@ -2160,6 +2160,109 @@ pub const access_flags_e_ACC_CONSTRUCTOR: access_flags_e = 65536;
 pub const access_flags_e_ACC_DECLARED_SYNCHRONIZED: access_flags_e = 131072;
 #[doc = " @brief access flags from the Dalvik Virtual Machine"]
 pub type access_flags_e = ::std::os::raw::c_uint;
+#[doc = " @brief Structure that represents the header of a DEX file"]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct dexheader_t_ {
+    #[doc = " @brief magic bytes from dex, different values are possible"]
+    pub magic: [u8; 8usize],
+    #[doc = " @brief checksum to see if file is correct"]
+    pub checksum: u32,
+    #[doc = " @brief signature of dex"]
+    pub signature: [u8; 20usize],
+    #[doc = " @brief current file size"]
+    pub file_size: u32,
+    #[doc = " @brief size of this header"]
+    pub header_size: u32,
+    #[doc = " @brief type of endianess of the file"]
+    pub endian_tag: u32,
+    #[doc = " @brief size of the link section, or 0 if this file isn't statically linked"]
+    pub link_size: u32,
+    #[doc = " @brief offset from the start of the file to the link section"]
+    pub link_off: u32,
+    #[doc = " @brief offset from the start of the file to the map item"]
+    pub map_off: u32,
+    #[doc = " @brief number of DexStrings"]
+    pub string_ids_size: u32,
+    #[doc = " @brief offset of the DexStrings"]
+    pub string_ids_off: u32,
+    #[doc = " @brief number of DexTypes"]
+    pub type_ids_size: u32,
+    #[doc = " @brief offset of the DexTypes"]
+    pub type_ids_off: u32,
+    #[doc = " @brief number of prototypes"]
+    pub proto_ids_size: u32,
+    #[doc = " @brief offset of the prototypes"]
+    pub proto_ids_off: u32,
+    #[doc = " @brief number of fields"]
+    pub field_ids_size: u32,
+    #[doc = " @brief offset of the fields"]
+    pub field_ids_off: u32,
+    #[doc = " @brief number of methods"]
+    pub method_ids_size: u32,
+    #[doc = " @brief offset of the methods"]
+    pub method_ids_off: u32,
+    #[doc = " @brief number of class definitions"]
+    pub class_defs_size: u32,
+    #[doc = " @brief offset of the class definitions"]
+    pub class_defs_off: u32,
+    #[doc = " @brief data area, containing all the support data for the tables listed above"]
+    pub data_size: u32,
+    #[doc = " @brief offset of the data area"]
+    pub data_off: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of dexheader_t_"][::std::mem::size_of::<dexheader_t_>() - 112usize];
+    ["Alignment of dexheader_t_"][::std::mem::align_of::<dexheader_t_>() - 4usize];
+    ["Offset of field: dexheader_t_::magic"][::std::mem::offset_of!(dexheader_t_, magic) - 0usize];
+    ["Offset of field: dexheader_t_::checksum"]
+        [::std::mem::offset_of!(dexheader_t_, checksum) - 8usize];
+    ["Offset of field: dexheader_t_::signature"]
+        [::std::mem::offset_of!(dexheader_t_, signature) - 12usize];
+    ["Offset of field: dexheader_t_::file_size"]
+        [::std::mem::offset_of!(dexheader_t_, file_size) - 32usize];
+    ["Offset of field: dexheader_t_::header_size"]
+        [::std::mem::offset_of!(dexheader_t_, header_size) - 36usize];
+    ["Offset of field: dexheader_t_::endian_tag"]
+        [::std::mem::offset_of!(dexheader_t_, endian_tag) - 40usize];
+    ["Offset of field: dexheader_t_::link_size"]
+        [::std::mem::offset_of!(dexheader_t_, link_size) - 44usize];
+    ["Offset of field: dexheader_t_::link_off"]
+        [::std::mem::offset_of!(dexheader_t_, link_off) - 48usize];
+    ["Offset of field: dexheader_t_::map_off"]
+        [::std::mem::offset_of!(dexheader_t_, map_off) - 52usize];
+    ["Offset of field: dexheader_t_::string_ids_size"]
+        [::std::mem::offset_of!(dexheader_t_, string_ids_size) - 56usize];
+    ["Offset of field: dexheader_t_::string_ids_off"]
+        [::std::mem::offset_of!(dexheader_t_, string_ids_off) - 60usize];
+    ["Offset of field: dexheader_t_::type_ids_size"]
+        [::std::mem::offset_of!(dexheader_t_, type_ids_size) - 64usize];
+    ["Offset of field: dexheader_t_::type_ids_off"]
+        [::std::mem::offset_of!(dexheader_t_, type_ids_off) - 68usize];
+    ["Offset of field: dexheader_t_::proto_ids_size"]
+        [::std::mem::offset_of!(dexheader_t_, proto_ids_size) - 72usize];
+    ["Offset of field: dexheader_t_::proto_ids_off"]
+        [::std::mem::offset_of!(dexheader_t_, proto_ids_off) - 76usize];
+    ["Offset of field: dexheader_t_::field_ids_size"]
+        [::std::mem::offset_of!(dexheader_t_, field_ids_size) - 80usize];
+    ["Offset of field: dexheader_t_::field_ids_off"]
+        [::std::mem::offset_of!(dexheader_t_, field_ids_off) - 84usize];
+    ["Offset of field: dexheader_t_::method_ids_size"]
+        [::std::mem::offset_of!(dexheader_t_, method_ids_size) - 88usize];
+    ["Offset of field: dexheader_t_::method_ids_off"]
+        [::std::mem::offset_of!(dexheader_t_, method_ids_off) - 92usize];
+    ["Offset of field: dexheader_t_::class_defs_size"]
+        [::std::mem::offset_of!(dexheader_t_, class_defs_size) - 96usize];
+    ["Offset of field: dexheader_t_::class_defs_off"]
+        [::std::mem::offset_of!(dexheader_t_, class_defs_off) - 100usize];
+    ["Offset of field: dexheader_t_::data_size"]
+        [::std::mem::offset_of!(dexheader_t_, data_size) - 104usize];
+    ["Offset of field: dexheader_t_::data_off"]
+        [::std::mem::offset_of!(dexheader_t_, data_off) - 108usize];
+};
+#[doc = " @brief Structure that represents the header of a DEX file"]
+pub type dexheader_t = dexheader_t_;
 #[doc = " @brief Structure which keeps information from a field\n this can be accessed from the class data"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -2894,6 +2997,10 @@ unsafe extern "C" {
     pub fn destroy_dex(context: hDexContext);
 }
 unsafe extern "C" {
+    #[doc = " @brief get the parsed header of the DEX file\n @param context from the DEX file\n @return parsed DEX header"]
+    pub fn get_header(context: hDexContext) -> *mut dexheader_t;
+}
+unsafe extern "C" {
     #[doc = " @brief Get the number of strings from the DEX file\n @param context from the DEX file\n @return number of strings"]
     pub fn get_number_of_strings(context: hDexContext) -> usize;
 }
@@ -2991,6 +3098,13 @@ unsafe extern "C" {
         context: hApkContext,
         idx: ::std::os::raw::c_uint,
     ) -> *const ::std::os::raw::c_char;
+}
+unsafe extern "C" {
+    #[doc = " @brief get the parsed header of one of the DEX file\n @param DEX file file to retrieve the number of classes\n @return parsed DEX header"]
+    pub fn get_header_for_dex_file(
+        context: hApkContext,
+        dex_file: *const ::std::os::raw::c_char,
+    ) -> *mut dexheader_t;
 }
 unsafe extern "C" {
     #[doc = " @brief Every dex file contains a number of classes, retrieve it by\n the name of the dex file\n @param dex_file file to retrieve the number of classes\n @return number of classes in the dex file"]
