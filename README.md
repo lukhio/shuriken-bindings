@@ -1,8 +1,8 @@
 # shuriken-bindings
 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/lukhio/shuriken-bindings/ci.yml?branch=main&style=for-the-badge)
-![Crates.io Version](https://img.shields.io/crates/v/shuriken-bindings?style=for-the-badge)
-![docs.rs](https://img.shields.io/docsrs/shuriken-bindings?style=for-the-badge)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/lukhio/shuriken-bindings/ci.yml?branch=main&style=for-the-badge)](https://github.com/lukhio/shuriken-bindings/actions/workflows/ci.yml)
+[![Crates.io Version](https://img.shields.io/crates/v/shuriken-bindings?style=for-the-badge)](https://crates.io/crates/shuriken-bindings)
+[![docs.rs](https://img.shields.io/docsrs/shuriken-bindings?style=for-the-badge)](https://docs.rs/shuriken-bindings/latest/shuriken_bindings/)
 
 Safe Rust bindings for the [Shuriken bytecode analyzer](https://github.com/Shuriken-Group/Shuriken-Analyzer).
 

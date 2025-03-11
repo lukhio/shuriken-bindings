@@ -15,6 +15,7 @@ use std::path::Path;
 use std::ffi::{ CStr, CString };
 
 use crate::parser::{
+    DvmHeader,
     DvmMethod,
     DvmClass
 };
@@ -71,6 +72,20 @@ impl DexContext {
     pub fn get_number_of_strings(&self) -> usize {
         unsafe {
             shuriken::get_number_of_strings(self.ptr)
+        }
+    }
+
+    /// Get the DEX header
+    pub fn get_header(&self) -> Option<DvmHeader> {
+        let header_ptr = unsafe {
+            shuriken::get_header(self.ptr)
+        };
+
+        match header_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmHeader::from_ptr(*header_ptr))
+            }
         }
     }
 
@@ -322,6 +337,23 @@ impl ApkContext {
         }
     }
 
+    /// Get the header of a given DEX file
+    pub fn get_header_from_dex(&self, dex_file: &str) -> Option<DvmHeader> {
+        let dex_name = CString::new(dex_file)
+            .expect("CString::new() failed");
+
+        let header_ptr = unsafe {
+            shuriken::get_header_for_dex_file(self.ptr, dex_name.as_ptr())
+        };
+
+        match header_ptr.is_null() {
+            true => None,
+            false => unsafe {
+                Some(DvmHeader::from_ptr(*header_ptr))
+            }
+        }
+    }
+
     /// Retrieve the number of strings from a given DEX
     pub fn get_number_of_strings_from_dex(&self, dex_file: &str) -> Option<usize> {
         let dex_name = CString::new(dex_file)
@@ -483,6 +515,36 @@ mod tests {
 
                 let context = DexContext::parse_dex(&path);
             }
+        }
+
+        #[test]
+        fn test_dex_header() {
+            let path = PathBuf::from("test_files/DexParserTest.dex");
+            let context = DexContext::parse_dex(&path);
+
+            let header = context.get_header();
+            assert!(header.is_some());
+            let header = header.unwrap();
+
+            assert_eq!(header.magic(), &[0x64, 0x65, 0x78, 0x0a, 0x30, 0x33, 0x35, 0x00]);
+            assert_eq!(header.checksum(), 0xe4eefae3);
+            assert_eq!(header.file_size(), 1624);
+            assert_eq!(header.header_size(), 112);
+
+            assert_eq!(header.link_size(), 0);
+            assert_eq!(header.link_off(), 0);
+            assert_eq!(header.string_ids_size(), 33);
+            assert_eq!(header.string_ids_off(), 112);
+            assert_eq!(header.type_ids_size(), 9);
+            assert_eq!(header.type_ids_off(), 244);
+            assert_eq!(header.proto_ids_size(), 7);
+            assert_eq!(header.proto_ids_off(), 280);
+            assert_eq!(header.field_ids_size(), 3);
+            assert_eq!(header.field_ids_off(), 364);
+            assert_eq!(header.method_ids_size(), 10);
+            assert_eq!(header.method_ids_off(), 388);
+            assert_eq!(header.class_defs_size(), 1);
+            assert_eq!(header.class_defs_off(), 468);
         }
 
         #[test]

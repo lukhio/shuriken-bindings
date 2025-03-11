@@ -38,6 +38,205 @@ pub enum DexBasicTypes {
     FundamentalNone = 99
 }
 
+/// Type alias for Shuriken's `dexheader_t`
+///
+/// Structure which contains the information from the header of a DEX file
+#[derive(Debug)]
+pub struct DvmHeader {
+    /// Magic bytes from dex, different values are possible
+    magic: [u8; 8],
+    /// Checksum to see if file is correct
+    checksum: u32,
+    /// Signature of dex
+    signature: [u8; 20],
+    /// Current file size
+    file_size: u32,
+    /// Size of this header
+    header_size: u32,
+    /// Type of endianess of the file
+    endian_tag: u32,
+    /// Size of the link section, or 0 if this file isn't statically linked
+    link_size: u32,
+    /// Offset from the start of the file to the link section
+    link_off: u32,
+    /// Offset from the start of the file to the map item
+    map_off: u32,
+    /// Number of DexStrings
+    string_ids_size: u32,
+    /// Offset of the DexStrings
+    string_ids_off: u32,
+    /// Number of DexTypes
+    type_ids_size: u32,
+    /// Offset of the DexTypes
+    type_ids_off: u32,
+    /// Number of prototypes
+    proto_ids_size: u32,
+    /// Offset of the prototypes
+    proto_ids_off: u32,
+    /// Number of fields
+    field_ids_size: u32,
+    /// Offset of the fields
+    field_ids_off: u32,
+    /// Number of methods
+    method_ids_size: u32,
+    /// Offset of the methods
+    method_ids_off: u32,
+    /// Number of class definitions
+    class_defs_size: u32,
+    /// Offset of the class definitions
+    class_defs_off: u32,
+    /// Data area, containing all the support data for the tables listed above
+    data_size: u32,
+    /// Data offset
+    data_off: u32,
+}
+
+impl DvmHeader {
+    /// Convert an `dexheader_t` into a `DvmHeader`
+    pub fn from_ptr(ptr: shuriken::dexheader_t) -> Self {
+        DvmHeader {
+            magic: ptr.magic,
+            checksum: ptr.checksum,
+            signature: ptr.signature,
+            file_size: ptr.file_size,
+            header_size: ptr.header_size,
+            endian_tag: ptr.endian_tag,
+            link_size: ptr.link_size,
+            link_off: ptr.link_off,
+            map_off: ptr.map_off,
+            string_ids_size: ptr.string_ids_size,
+            string_ids_off: ptr.string_ids_off,
+            type_ids_size: ptr.type_ids_size,
+            type_ids_off: ptr.type_ids_off,
+            proto_ids_size: ptr.proto_ids_size,
+            proto_ids_off: ptr.proto_ids_off,
+            field_ids_size: ptr.field_ids_size,
+            field_ids_off: ptr.field_ids_off,
+            method_ids_size: ptr.method_ids_size,
+            method_ids_off: ptr.method_ids_off,
+            class_defs_size: ptr.class_defs_size,
+            class_defs_off: ptr.class_defs_off,
+            data_size: ptr.data_size,
+            data_off: ptr.data_off,
+        }
+    }
+
+    /// Returns a reference to the magic bytes from DEX
+    pub fn magic(&self) -> &[u8; 8] {
+        &self.magic
+    }
+
+    /// Returns a reference to the checksum
+    pub fn checksum(&self) -> u32 {
+        self.checksum
+    }
+
+    /// Returns a reference to the signature of DEX
+    pub fn signature(&self) -> &[u8; 20] {
+        &self.signature
+    }
+
+    /// Returns the current file size
+    pub fn file_size(&self) -> u32 {
+        self.file_size
+    }
+
+    /// Returns the size of this header
+    pub fn header_size(&self) -> u32 {
+        self.header_size
+    }
+
+    /// Returns the type of endianess of the file
+    pub fn endian_tag(&self) -> u32 {
+        self.endian_tag
+    }
+
+    /// Returns the size of the link section, or 0 if this file isn't statically linked
+    pub fn link_size(&self) -> u32 {
+        self.link_size
+    }
+
+    /// Returns the offset from the start of the file to the link section
+    pub fn link_off(&self) -> u32 {
+        self.link_off
+    }
+
+    /// Returns the offset from the start of the file to the map item
+    pub fn map_off(&self) -> u32 {
+        self.map_off
+    }
+
+    /// Returns the number of DexStrings
+    pub fn string_ids_size(&self) -> u32 {
+        self.string_ids_size
+    }
+
+    /// Returns the offset of the DexStrings
+    pub fn string_ids_off(&self) -> u32 {
+        self.string_ids_off
+    }
+
+    /// Returns the number of DexTypes
+    pub fn type_ids_size(&self) -> u32 {
+        self.type_ids_size
+    }
+
+    /// Returns the offset of the DexTypes
+    pub fn type_ids_off(&self) -> u32 {
+        self.type_ids_off
+    }
+
+    /// Returns the number of prototypes
+    pub fn proto_ids_size(&self) -> u32 {
+        self.proto_ids_size
+    }
+
+    /// Returns the offset of the prototypes
+    pub fn proto_ids_off(&self) -> u32 {
+        self.proto_ids_off
+    }
+
+    /// Returns the number of fields
+    pub fn field_ids_size(&self) -> u32 {
+        self.field_ids_size
+    }
+
+    /// Returns the offset of the fields
+    pub fn field_ids_off(&self) -> u32 {
+        self.field_ids_off
+    }
+
+    /// Returns the number of methods
+    pub fn method_ids_size(&self) -> u32 {
+        self.method_ids_size
+    }
+
+    /// Returns the offset of the methods
+    pub fn method_ids_off(&self) -> u32 {
+        self.method_ids_off
+    }
+
+    /// Returns the number of class definitions
+    pub fn class_defs_size(&self) -> u32 {
+        self.class_defs_size
+    }
+
+    /// Returns the offset of the class definitions
+    pub fn class_defs_off(&self) -> u32 {
+        self.class_defs_off
+    }
+
+    /// Returns the data area, containing all the support data for the tables listed above
+    pub fn data_size(&self) -> u32 {
+        self.data_size
+    }
+
+    /// Returns the data offset
+    pub fn data_off(&self) -> u32 {
+        self.data_off
+    }
+}
+
 /// Type alias for Shuriken's `hdvmfield_t`
 ///
 /// Structure which keeps information from a field this can be accessed from the class data

@@ -1,8 +1,8 @@
 [package]
 name = "shuriken-bindings"
-version = "1.0.2"
+version = "1.0.3"
 authors = ["Julien Gamba <julien@jgamba.eu>"]
-edition = "2021"
+edition = "2024"
 license = "Apache-2.0"
 description = "Safe bindings for the [Shuriken bytecode analyzer"
 homepage = "https://github.com/lukhio/shuriken-bindings"
